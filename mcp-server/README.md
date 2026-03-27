@@ -77,6 +77,7 @@ The server exposes the following Kiro system documentation:
 - `kiro://system/quality-standards` - Quality standards
 - `kiro://system/response-style` - Response style guide
 - `kiro://system/workflow-patterns` - Common workflow patterns
+- `kiro://system/tool-reference` - Complete tool catalog with parameter schemas
 
 ### Available Tools
 

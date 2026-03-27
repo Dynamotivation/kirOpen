@@ -1,6 +1,6 @@
 ---
 name: create-steering-documents
-description: Create comprehensive steering documents for development projects. Generates project-specific standards, git workflows, and technology guidelines in .kiro/steering/ directory.
+description: Create project-specific steering documents that give Kiro persistent context about your project standards, conventions, and workflows. Steering docs live in .kiro/steering/ and are automatically included based on configurable rules.
 version: 1.0.0
 license: MIT
 compatibility:
@@ -8,9 +8,11 @@ compatibility:
   - Cursor
   - VS Code Copilot
   - Windsurf
+  - Kiro
 metadata:
   category: project-setup
   complexity: intermediate
+  author: Kiro Team
   triggers:
     - create steering documents
     - setup project standards
@@ -20,339 +22,129 @@ metadata:
 
 # Create Steering Documents
 
-Create comprehensive steering documents for a development project based on the project type and requirements.
+Steering documents give me persistent context about your project. Instead of repeating your standards and conventions every conversation, you write them once in `.kiro/steering/` and I pick them up automatically.
 
-## Usage
+## What Steering Documents Are
 
-```
-Create steering documents for [project description]
-```
+They are markdown files in `.kiro/steering/` that get injected into my context before I process your requests. They contain project-specific standards, conventions, and guidelines that help me produce consistent, relevant output.
 
-## Examples
+## How Inclusion Works
 
-- `Create steering documents for a React TypeScript e-commerce application`
-- `Create steering documents for a Python Django REST API with PostgreSQL`
-- `Create steering documents for a Node.js microservices architecture`
-- `Create steering documents for a Vue.js component library`
+Three modes, controlled by front-matter:
 
-## What Are Steering Documents?
-
-Steering documents are contextual guidelines that influence how AI assistants approach development tasks. They contain project-specific standards, conventions, and best practices that help provide more relevant and consistent assistance.
-
-### How They Work
-
-1. **Always Included (Default)**: Documents without front-matter are included in every interaction
-2. **File Match Conditional**: Documents with `inclusion: fileMatch` are included when specific files are in context
-3. **Manual Inclusion**: Documents with `inclusion: manual` are only included when explicitly referenced
-
-## Process
-
-### 1. Project Analysis
-
-First, analyze the project requirements and determine which steering documents are needed:
-
-**For Frontend Projects (React, Vue, Angular):**
-- Include: project-standards.md, git-workflow.md, frontend-standards.md, development-environment.md
-- Consider: component-library.md, testing-strategy.md
-
-**For Backend/API Projects (Node.js, Python, Java):**
-- Include: project-standards.md, git-workflow.md, api-design.md, development-environment.md
-- Consider: database-standards.md, security-guidelines.md
-
-**For Full-Stack Projects:**
-- Include: All core documents plus technology-specific ones
-- Consider: deployment-standards.md, monitoring-guidelines.md
-
-**For Library/Package Projects:**
-- Include: project-standards.md, git-workflow.md, documentation-standards.md
-- Consider: versioning-strategy.md, publishing-guidelines.md
-
-### 2. Core Document Templates
-
-#### project-standards.md
-
+**Always included** (no front-matter needed):
 ```markdown
-# Project Standards and Guidelines
-
-## Code Quality Standards
-- Follow language-specific style guides (ESLint for JS/TS, Black for Python, etc.)
-- Maintain consistent naming conventions across the codebase
-- Write self-documenting code with clear variable and function names
-- Include meaningful comments for complex business logic
-- Keep functions small and focused on single responsibilities
-
-## Testing Requirements
-- Write unit tests for all business logic functions
-- Maintain minimum 80% code coverage
-- Include integration tests for API endpoints
-- Write end-to-end tests for critical user flows
-- Use descriptive test names that explain the scenario being tested
-
-## Documentation Standards
-- Update README.md for any significant changes
-- Document API endpoints with clear examples
-- Include setup and deployment instructions
-- Maintain changelog for version releases
-- Document architectural decisions in ADR format
-
-## Security Practices
-- Never commit secrets, API keys, or passwords
-- Use environment variables for configuration
-- Validate all user inputs
-- Implement proper authentication and authorization
-- Follow OWASP security guidelines
-
-## Performance Guidelines
-- Optimize database queries and avoid N+1 problems
-- Implement caching where appropriate
-- Use lazy loading for large datasets
-- Monitor and profile performance regularly
-- Consider scalability in architectural decisions
+# Project Standards
+Your standards here...
 ```
 
-#### git-workflow.md
-
-```markdown
-# Git Workflow and Branching Strategy
-
-## Branch Naming Convention
-- Feature branches: `feature/description-of-feature`
-- Bug fixes: `fix/description-of-bug`
-- Hotfixes: `hotfix/critical-issue-description`
-- Releases: `release/version-number`
-
-## Commit Message Format
-Follow conventional commits format:
-```
-type(scope): description
-
-[optional body]
-
-[optional footer]
-```
-
-Types: feat, fix, docs, style, refactor, test, chore
-
-## Pull Request Guidelines
-- Create PR from feature branch to main/develop
-- Include clear description of changes
-- Link related issues using keywords (fixes #123)
-- Ensure all tests pass before requesting review
-- Squash commits when merging to keep history clean
-
-## Code Review Process
-- At least one approval required before merge
-- Review for code quality, security, and performance
-- Check that tests cover new functionality
-- Verify documentation is updated if needed
-- Ensure no breaking changes without proper versioning
-```
-
-#### frontend-standards.md
-
-```markdown
+**Conditionally included** when specific files are in context:
+```yaml
 ---
 inclusion: fileMatch
-fileMatchPattern: '*.tsx|*.jsx|*.vue|*.svelte'
+fileMatchPattern: '*.tsx|*.jsx'
 ---
-
-# Frontend Development Standards
-
-## Component Architecture
-- Use functional components with hooks (React)
-- Keep components small and focused
-- Implement proper prop validation
-- Use TypeScript for type safety
-- Follow component composition patterns
-
-## State Management
-- Use local state for component-specific data
-- Implement global state for shared application data
-- Use proper state management libraries (Redux, Zustand, Pinia)
-- Avoid prop drilling with context or state management
-
-## Styling Guidelines
-- Use CSS modules or styled-components for component styling
-- Follow BEM methodology for CSS class naming
-- Implement responsive design with mobile-first approach
-- Use CSS custom properties for theming
-- Maintain consistent spacing and typography scales
-
-## Performance Optimization
-- Implement code splitting and lazy loading
-- Use React.memo or similar for expensive components
-- Optimize images and assets
-- Implement proper caching strategies
-- Monitor bundle size and performance metrics
-
-## Accessibility Standards
-- Use semantic HTML elements
-- Implement proper ARIA attributes
-- Ensure keyboard navigation support
-- Maintain proper color contrast ratios
-- Test with screen readers
+# Frontend Standards
+Your frontend rules here...
 ```
 
-#### api-design.md
-
-```markdown
+**Manually included** when you reference them with `#` in chat:
+```yaml
 ---
 inclusion: manual
 ---
-
 # API Design Guidelines
-
-## RESTful API Standards
-- Use HTTP methods appropriately (GET, POST, PUT, DELETE, PATCH)
-- Follow resource-based URL patterns: `/api/v1/users/{id}`
-- Use plural nouns for resource collections
-- Implement proper HTTP status codes
-- Include API versioning in URL path
-
-## Request/Response Format
-- Use JSON for request and response bodies
-- Follow consistent naming conventions (camelCase or snake_case)
-- Include pagination for list endpoints
-- Implement proper error response format:
-
-```json
-{
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Invalid input provided",
-    "details": ["Email is required", "Password too short"]
-  }
-}
+Your API rules here...
 ```
 
-## Authentication and Authorization
-- Use JWT tokens for stateless authentication
-- Implement proper token refresh mechanisms
-- Use role-based access control (RBAC)
-- Rate limit API endpoints to prevent abuse
+Inclusion is rule-based. There is no relevance ranking or recency prioritization. If the rule matches, the full document is included.
 
-## Documentation
-- Use OpenAPI/Swagger for API documentation
-- Include request/response examples
-- Document all possible error responses
-- Provide SDK or client library examples
-```
+## File References
 
-#### development-environment.md
-
+Steering docs can reference other files in your project:
 ```markdown
----
-inclusion: fileMatch
-fileMatchPattern: 'package.json|requirements.txt|Dockerfile|docker-compose.yml'
----
-
-# Development Environment Setup
-
-## Local Development
-- Use Node.js version specified in .nvmrc file
-- Install dependencies with `npm ci` for consistent builds
-- Use Docker for local database and service dependencies
-- Run linting and formatting before committing changes
-
-## Environment Variables
-- Copy `.env.example` to `.env` for local development
-- Never commit actual environment files
-- Document all required environment variables in README
-- Use different prefixes for different environments (DEV_, PROD_, etc.)
-
-## Database Management
-- Use migrations for all schema changes
-- Include rollback scripts for migrations
-- Seed data should be idempotent
-- Backup database before major changes
-
-## Build and Deployment
-- Ensure builds are reproducible across environments
-- Use multi-stage Docker builds for optimization
-- Include health checks in containerized applications
-- Document deployment procedures and rollback steps
-
-## Debugging and Logging
-- Use structured logging with appropriate log levels
-- Include correlation IDs for request tracing
-- Set up proper error monitoring and alerting
-- Use debugger instead of console.log for development
+#[[file:openapi.yml]]
+#[[file:schema.graphql]]
 ```
 
-### 3. Content Customization
+This means your API spec or database schema can influence my behavior without copy-pasting content into the steering doc.
 
-**Language/Framework Specific Adaptations:**
-- **JavaScript/TypeScript**: ESLint, Prettier, Jest, package.json scripts
-- **Python**: Black, flake8, pytest, requirements.txt, virtual environments
-- **Java**: Checkstyle, Maven/Gradle, JUnit, Spring Boot conventions
-- **Go**: gofmt, go mod, testing patterns, project structure
-- **Rust**: rustfmt, Cargo.toml, cargo test, clippy
+## What to Put in Steering Documents
 
-**Project Scale Adaptations:**
-- **Small Projects**: Lightweight processes, minimal tooling
-- **Team Projects**: Code review requirements, shared standards
-- **Enterprise**: Comprehensive security, compliance, documentation
+### Always-included docs (use sparingly)
+- Project-wide coding standards
+- Git workflow and commit conventions
+- Security practices
+- Testing requirements
 
-**Domain Specific Considerations:**
-- **E-commerce**: PCI compliance, performance, security
-- **Healthcare**: HIPAA compliance, data privacy, audit trails
-- **Finance**: Security standards, regulatory compliance
-- **Open Source**: Contribution guidelines, licensing, community standards
+These apply to every interaction, so keep them focused. Do not dump everything here.
 
-### 4. File Reference Integration
+### File-match docs (most useful)
+- Frontend standards (triggered by .tsx, .jsx, .vue files)
+- API design guidelines (triggered by route/controller files)
+- Database conventions (triggered by migration/schema files)
+- Environment setup (triggered by package.json, Dockerfile)
 
-Include relevant external files using the `#[[file:path]]` syntax:
-- OpenAPI specifications for API projects
-- Database schemas for backend projects
-- Design system tokens for frontend projects
-- Configuration files for environment setup
+These only appear when relevant, keeping context lean.
 
-### 5. Quality Checklist
+### Manual docs (for specialized topics)
+- API design deep-dives
+- Architecture decision records
+- Deployment procedures
+- Domain-specific business rules
 
-Before finalizing steering documents, ensure:
-- [ ] All documents have appropriate front-matter for inclusion logic
-- [ ] Guidelines are specific and actionable, not generic
-- [ ] Examples are provided for complex concepts
-- [ ] No conflicting standards between documents
-- [ ] Security and performance considerations are included
-- [ ] Documentation covers the full development lifecycle
-- [ ] File references are correctly formatted and valid
+These are available when you need them but do not clutter every conversation.
+
+## My Process for Creating Them
+
+### 1. Analyze the Project
+
+I look at:
+- What languages and frameworks are used
+- What the directory structure looks like
+- What existing conventions are in place
+- What config files exist (linters, formatters, CI)
+
+### 2. Determine Which Documents to Create
+
+**Frontend projects:** project-standards, git-workflow, frontend-standards, dev-environment
+**Backend/API projects:** project-standards, git-workflow, api-design, dev-environment
+**Full-stack:** All of the above
+**Libraries:** project-standards, git-workflow, documentation-standards
+
+### 3. Write Actionable Content
+
+Every guideline should be specific enough to follow. Not "write good code" but "use functional components with hooks, keep components under 200 lines, define props with TypeScript interfaces."
+
+### 4. Set Appropriate Inclusion Rules
+
+- Standards that apply everywhere: no front-matter (always included)
+- Standards for specific file types: fileMatch with appropriate patterns
+- Reference material: manual inclusion
 
 ## Output Structure
 
-Create steering documents in the `.kiro/steering/` directory:
-
 ```
 .kiro/steering/
-├── project-standards.md      (always included)
-├── git-workflow.md           (always included)
-├── frontend-standards.md     (fileMatch: *.tsx,*.jsx)
-├── api-design.md             (manual inclusion)
-└── development-environment.md (fileMatch: package.json)
+  project-standards.md      (always included)
+  git-workflow.md            (always included)
+  frontend-standards.md      (fileMatch: *.tsx|*.jsx)
+  api-design.md              (manual)
+  development-environment.md (fileMatch: package.json|Dockerfile)
 ```
 
-## Front-matter Options
+## Guidelines
 
-```yaml
----
-inclusion: always|fileMatch|manual
-fileMatchPattern: 'glob-pattern'  # for fileMatch only
----
-```
+Do:
+- Keep documents focused on one topic each
+- Use specific, actionable language
+- Include code examples for complex conventions
+- Reference external files with #[[file:path]] syntax
+- Use fileMatch for context-specific standards
 
-## Best Practices
-
-### Do:
-- Keep documents focused and specific
-- Use clear, actionable language
-- Include concrete examples
-- Reference external specifications
-- Update regularly as project evolves
-- Use appropriate inclusion mechanisms
-
-### Don't:
-- Create overly broad or generic guidelines
+Do not:
+- Create overly broad documents that apply to everything
 - Duplicate information across multiple documents
-- Include sensitive information or secrets
-- Create conflicting standards
-- Make documents too long or complex
+- Include secrets or credentials
+- Create conflicting standards between documents
+- Make documents so long they consume excessive context

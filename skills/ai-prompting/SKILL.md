@@ -1,8 +1,8 @@
 ---
 name: ai-prompting
-description: Effective communication strategies for AI-assisted development. Learn context-first prompting, phased interactions, iterative refinement, and validation techniques to get better results from Claude and other AI coding assistants.
+description: How to communicate effectively with Kiro and other AI coding assistants. Context-first prompting, phased interactions, iterative refinement, and validation techniques for better results.
 license: MIT
-compatibility: Claude Code, Cursor, VS Code, Windsurf
+compatibility: Claude Code, Cursor, VS Code, Windsurf, Kiro
 metadata:
   category: methodology
   complexity: beginner
@@ -12,381 +12,173 @@ metadata:
 
 # AI Prompting Strategies
 
-Master the art of communicating with AI coding assistants to get better results faster. These strategies are optimized for spec-driven development but apply broadly to AI collaboration.
+This is how to get the best results out of me. Not generic "prompt engineering" — specific patterns that work with how I actually process requests.
 
-## When to Use This Skill
+## Why This Matters
 
-Use these prompting strategies when:
-- Working with Claude Code, Cursor, or other AI assistants
-- Creating specs through AI collaboration
-- Getting inconsistent or low-quality AI responses
-- Need to improve AI output accuracy
-- Want faster iteration cycles
+I produce better output when I have:
+- Clear context about what you're working on
+- Explicit constraints (tech stack, performance, security)
+- A defined scope (what's in, what's out)
+- Examples of what good looks like
+
+I produce worse output when:
+- Context is missing and I have to guess
+- Everything is requested at once in a wall of text
+- Constraints are implicit ("you should know this")
+- There's no feedback loop
 
 ## Core Strategies
 
-### Strategy 1: Context-First Prompting
+### 1. Context First, Request Second
 
-Always provide sufficient context before making requests.
+I can't read your mind. Give me the situation before the ask.
 
-**Poor Approach:**
+**Weak:**
 ```
 Create requirements for a user profile feature.
 ```
 
-**Better Approach:**
+**Strong:**
 ```
-I'm working on a web application for a fitness tracking platform. We need to add user profile functionality where users can manage their personal information and fitness goals.
+I'm building a fitness tracking web app (React + Node.js). We need user profiles 
+where people manage their info and fitness goals. Must comply with GDPR for EU users. 
+Integrates with our existing auth system.
 
-Context:
-- Technology: React frontend, Node.js backend
-- User base: Health-conscious individuals, age 18-65
-- Key constraint: Must comply with GDPR for EU users
-- Integration: Will connect with existing authentication system
-
-Please help me create requirements for the user profile feature.
+Help me create requirements for the user profile feature using EARS format.
 ```
 
-**Why It Works:**
-- Provides domain context for better decisions
-- Identifies technical constraints early
-- Clarifies compliance requirements
-- Enables more relevant suggestions
+The second version gives me domain, tech stack, constraints, and integration context. I'll produce something relevant instead of generic.
 
-### Strategy 2: Phased Interaction
+### 2. Work in Phases, Not All at Once
 
-Work through spec phases sequentially. Complete each phase before moving to the next.
+Don't ask me to go from idea to implementation plan in one message. The spec-driven workflow exists for a reason — each phase builds on the previous one.
 
-**Phase 1 - Requirements:**
+**Phase 1:** "Help me develop requirements for [feature]. Here's the context: [context]"
+→ We iterate until requirements are solid.
+
+**Phase 2:** "Requirements are approved. Let's design the technical approach. Here's our stack: [stack]"
+→ We iterate until design is solid.
+
+**Phase 3:** "Design is approved. Break this into implementation tasks."
+→ We iterate until the task list is complete.
+
+Trying to do all three at once produces shallow results across the board.
+
+### 3. Iterate, Don't Accept First Draft
+
+My first response is a starting point, not a final answer. Push back. Ask questions. Refine.
+
 ```
-Let's start with the requirements phase for [feature name].
-
-Current situation: [describe current state]
-Problem to solve: [describe the problem]
-Users affected: [describe user types]
-Success criteria: [how we'll know it works]
-
-Please help me develop comprehensive requirements using the EARS format.
-```
-
-**Phase 2 - Design (after requirements approved):**
-```
-Now that we have clear requirements, let's create the technical design.
-
-Requirements summary: [key requirements]
-Technical context: [architecture, frameworks, patterns]
-Constraints: [performance, scalability, security]
-
-Please propose a technical design that addresses these requirements.
+Good start. A few things to improve:
+1. The notification frequency should include a daily digest option
+2. What happens if preferences change while notifications are pending?
+3. The unsubscribe flow needs GDPR compliance details
 ```
 
-**Phase 3 - Tasks (after design approved):**
+This kind of specific feedback produces much better second drafts than "make it better."
+
+### 4. Show Me What Good Looks Like
+
+If you have examples of the output format you want, share them.
+
 ```
-With the design finalized, let's break this into implementation tasks.
+Write acceptance criteria for file upload. Use EARS format like this:
 
-Design summary: [key components and interactions]
-Team context: [team size, skill levels]
-Dependencies: [what must be built first]
+"WHEN user enters valid credentials THEN system SHALL authenticate within 2 seconds"
 
-Please create a sequenced task breakdown for implementation.
-```
-
-### Strategy 3: Iterative Refinement
-
-Treat spec development as conversation, not single requests.
-
-**Initial Request:**
-```
-Help me define requirements for email notification preferences.
-```
-
-**Refinement Round 1:**
-```
-Great start! Let's refine a few areas:
-1. For notification frequency, can we add daily digest option?
-2. How should we handle changing preferences during pending notifications?
-3. Can you elaborate on the unsubscribe requirement for GDPR compliance?
-```
-
-**Refinement Round 2:**
-```
-Perfect. Now let's add requirements for:
-- Mobile push notifications (in addition to email)
-- Notification history (last 30 days)
-- Per-notification-type controls (not just global on/off)
-```
-
-### Strategy 4: Example-Driven Prompting
-
-Provide concrete examples of what you want.
-
-**For Requirements:**
-```
-I need acceptance criteria for a file upload feature. Use the EARS format like this example:
-
-Good example from our auth feature:
-"WHEN a user enters valid credentials THEN the system SHALL authenticate within 2 seconds"
-
-Avoid vague requirements like:
+Not like this:
 "System should handle file uploads efficiently"
-
-Focus on specific, testable criteria for:
-- File size limits
-- Supported file types
-- Upload progress indication
-- Error handling
 ```
 
-**For Design:**
-```
-Create a component architecture. Follow this existing pattern:
+### 5. Make Constraints Explicit
 
-[Reference existing architecture]
-
-Key elements to include:
-- Component responsibilities
-- Data flow
-- API boundaries
-- Error handling paths
-```
-
-### Strategy 5: Constraint-Explicit Prompting
-
-Make all constraints explicit. Don't assume AI knows your limitations.
+Don't assume I know your limitations. Spell them out.
 
 ```
 Design a caching strategy for product catalog data.
 
-Explicit constraints:
-- Infrastructure: AWS with Redis, PostgreSQL
-- Performance: API response < 200ms for cached data
-- Scale: 10,000 products, 1,000 concurrent users
-- Budget: Cache cost < $100/month
-- Freshness: Updates visible within 5 minutes
-- Maintenance: 2-person ops team
+Constraints:
+- AWS with Redis and PostgreSQL
+- API response < 200ms for cached data
+- 10,000 products, 1,000 concurrent users
+- Cache budget < $100/month
+- Updates visible within 5 minutes
 
-Flexibility allowed:
-- Cache invalidation strategy (time or event-based)
-- Cache key structure (optimize as needed)
-- Failover approach (as long as reliable)
+Flexible:
+- Cache invalidation approach
+- Key structure
+- Failover strategy
 ```
 
-### Strategy 6: Role-Based Prompting
+### 6. Validate, Don't Just Accept
 
-Frame requests from specific perspectives.
+Build quality checks into your workflow:
 
-**Product Owner Perspective:**
-```
-As a product owner defining checkout requirements:
-- Business goals: Reduce cart abandonment
-- User value: Smooth, trustworthy purchase experience
-- Success metrics: Checkout completion rate > 80%
-
-What requirements should I capture?
-```
-
-**Technical Lead Perspective:**
-```
-As tech lead designing a notification system:
-- Integrates with existing microservices
-- Handles 100k notifications/day with room to grow
-- Maintains health if notification service fails
-- Aligns with event-driven architecture
-
-What design approach would you recommend?
-```
-
-**Developer Perspective:**
-```
-As a mid-level developer implementing this:
-- Need clear tasks (2-4 hours each)
-- Explicit dependencies between tasks
-- Guidance on testing approach
-- References to existing code patterns
-
-Can you break down the implementation accordingly?
-```
-
-### Strategy 7: Validation-Oriented Prompting
-
-Build quality checks into your prompts.
-
-**After Requirements:**
 ```
 Review these requirements and check:
-1. Are all requirements testable and measurable?
-2. Have we covered error cases and edge cases?
-3. Do any requirements conflict with each other?
+1. Are all requirements testable?
+2. Have we covered error cases?
+3. Do any requirements conflict?
 4. Are there gaps in the user journey?
-5. Do requirements map to all user stories?
-
-Provide a validation summary.
 ```
 
-**After Design:**
-```
-Validate this design against:
-1. Does it address all requirements?
-2. Are there single points of failure?
-3. What are the performance bottlenecks?
-4. How does it handle scale growth?
-5. What security concerns exist?
-
-Provide a critical review.
-```
-
-### Strategy 8: Trade-Off Exploration
-
-Explore options rather than seeking single answers.
-
-```
-We need real-time notifications. Compare these options:
-
-Option A: WebSocket connections
-Option B: Server-Sent Events (SSE)
-Option C: Long polling
-
-For each, evaluate:
-- Implementation complexity
-- Browser compatibility
-- Server resource usage
-- Scalability characteristics
-- Maintenance overhead
-
-Present trade-offs in a comparison table.
-```
+I'm good at self-review when you ask me to do it explicitly. I won't always do it unprompted.
 
 ## Phase-Specific Patterns
 
-### Requirements Phase Patterns
+### For Requirements
 
-**User Story Expansion:**
 ```
-I have this user story: [basic story]
+I have this user story: [story]
 
-Please help me:
-1. Expand with detailed acceptance criteria (EARS format)
+Help me:
+1. Expand with EARS acceptance criteria
 2. Identify edge cases and error scenarios
-3. Define non-functional requirements
-4. Suggest validation criteria
+3. Add non-functional requirements
+4. Flag anything ambiguous
 ```
 
-**Completeness Check:**
-```
-Here are my draft requirements: [requirements]
+### For Design
 
-Check for completeness:
-- Are all user workflows covered?
-- Have we addressed error handling?
-- Are there accessibility requirements?
-- What about data privacy and security?
-- Have we considered mobile vs desktop?
-```
-
-### Design Phase Patterns
-
-**Architecture Exploration:**
 ```
 Given these requirements: [summary]
 
-Propose 2-3 different architectural approaches:
-1. For each, describe components and interactions
-2. List pros and cons
-3. Identify risks and mitigations
-4. Estimate complexity
+Propose the technical approach:
+1. Architecture and component breakdown
+2. Data models
+3. Key interfaces
+4. Error handling strategy
 
-Help me compare and choose.
+Our stack is [stack]. Key constraint: [constraint].
 ```
 
-**Integration Design:**
-```
-This feature integrates with: [list systems]
+### For Tasks
 
-Design the integration:
-1. Define API contracts
-2. Specify data flow and transformation
-3. Plan error handling and retries
-4. Document assumptions and dependencies
-```
-
-### Tasks Phase Patterns
-
-**Task Sequencing:**
 ```
 Based on this design: [summary]
 
 Create implementation tasks that:
-1. Are sequenced to minimize dependencies
-2. Enable incremental testing
-3. Separate setup, core features, and polish
-4. Include testing tasks
-5. Range from 2-4 hours each
+1. Respect dependencies
+2. Are 2-4 hours each
+3. Include testing
+4. Reference requirements
 ```
 
-**Task Validation:**
-```
-Review these tasks: [task list]
+## What Doesn't Work
 
-Verify:
-1. Can each task be completed independently?
-2. Are dependencies clearly marked?
-3. Do tasks map to design components?
-4. Are testing steps included?
-5. Is anything missing?
-```
+- **Giant prompts with everything at once.** I'll produce shallow results. Break it up.
+- **"Make it good."** Good by what criteria? Be specific about what you want improved.
+- **Assuming I remember previous conversations.** Each conversation starts fresh. Provide context.
+- **Skipping context because "it's obvious."** It's not obvious to me. I don't have your codebase memorized unless you show it to me.
+- **Never pushing back.** If my first answer isn't right, tell me why. I learn from feedback within the conversation.
 
-## Advanced Techniques
+## Kiro-Specific Tips
 
-### Specification by Example
-Provide examples of good and bad outputs to calibrate responses.
-
-### Incremental Context Building
-Start broad, add detail as AI demonstrates understanding.
-
-### Meta-Prompting
-Ask AI how to prompt it better for your specific context.
-
-### Comparative Prompting
-Present multiple versions, ask which is better and why.
-
-## Common Mistakes
-
-1. **Too little context:** AI can't read your mind
-2. **All at once:** Work in phases, not giant prompts
-3. **Accept first response:** Iterate and refine
-4. **No examples:** Show what you want
-5. **Hidden constraints:** Make limitations explicit
-6. **Skip validation:** Always verify outputs
-
-## Quick Reference
-
-**Starting a spec:**
-```
-I'm working on [project]. We need [feature].
-Context: [tech stack, constraints, users]
-Please help me develop [requirements/design/tasks].
-```
-
-**Refining output:**
-```
-Good progress. Let's improve:
-1. [Specific area to expand]
-2. [Missing element to add]
-3. [Clarification needed]
-```
-
-**Validating output:**
-```
-Review this [document] and identify:
-- Missing elements
-- Ambiguities
-- Conflicts
-- Quality issues
-```
-
-**Exploring options:**
-```
-Compare these approaches: [options]
-Evaluate: [criteria]
-Present trade-offs for decision-making.
-```
+- Use `#File` and `#Folder` to pull specific files into context
+- Use `#Problems` to show me current diagnostics
+- Use `#Terminal` to share terminal output
+- Use `#Git Diff` to show me what changed
+- Drag images or documents (PDF, DOCX) directly into chat
+- Use steering documents (`.kiro/steering/`) to set persistent project context
+- Use specs (`.kiro/specs/`) for structured feature development

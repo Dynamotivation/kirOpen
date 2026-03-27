@@ -166,7 +166,7 @@ export default function ContentCoverage() {
             <div className="text-sm text-gray-600">文档文件</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-purple-600">100%</div>
+            <div className="text-3xl font-bold text-purple-600">~90%</div>
             <div className="text-sm text-gray-600">内容覆盖</div>
           </div>
         </div>

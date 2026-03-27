@@ -1,8 +1,8 @@
 ---
 name: requirements-engineering
-description: Transform vague feature ideas into clear, testable requirements using EARS format. Capture user stories, define acceptance criteria, identify edge cases, and validate completeness before moving to design.
+description: Kiro's approach to capturing what needs to be built before diving into how. Uses EARS format for clear, testable requirements with user stories, acceptance criteria, and edge case coverage.
 license: MIT
-compatibility: Claude Code, Cursor, VS Code, Windsurf
+compatibility: Claude Code, Cursor, VS Code, Windsurf, Kiro
 metadata:
   category: methodology
   complexity: beginner
@@ -12,209 +12,108 @@ metadata:
 
 # Requirements Engineering
 
-Master the art of capturing what needs to be built before diving into how to build it. This skill teaches the EARS (Easy Approach to Requirements Syntax) format for creating clear, testable requirements.
+This is how I handle the first phase of spec-driven development. The goal: turn a vague idea into something specific enough to design and build against.
 
-## When to Use This Skill
+## When to Use This
 
-Use requirements engineering when:
 - Starting any new feature or project
-- Clarifying ambiguous stakeholder requests
+- Clarifying ambiguous requests
 - Creating acceptance criteria for user stories
-- Documenting system behavior for testing
-- Ensuring all team members share understanding
+- Ensuring everyone agrees on what "done" looks like
 
 ## The EARS Format
 
-EARS provides consistent patterns for writing requirements that are specific, testable, and unambiguous.
+I use EARS (Easy Approach to Requirements Syntax) because it forces precision. Every requirement follows a pattern that makes it testable.
 
-### Basic Patterns
+### Core Patterns
 
-**Event-Response (Most Common):**
+**Event-Response** (most common):
 ```
 WHEN [triggering event] THEN [system] SHALL [required response]
 ```
 
-**Conditional Behavior:**
+**Conditional:**
 ```
-IF [precondition is met] THEN [system] SHALL [required response]
-```
-
-**Complex Conditions:**
-```
-WHEN [event] AND [additional condition] THEN [system] SHALL [response]
+IF [precondition] THEN [system] SHALL [required response]
 ```
 
-**Optional Conditions:**
+**Combined:**
 ```
-WHEN [event] OR [alternative event] THEN [system] SHALL [response]
-```
-
-### Advanced Patterns
-
-**State-Based:**
-```
-WHEN [system is in specific state] THEN [system] SHALL [behavior]
+WHEN [event] AND [condition] THEN [system] SHALL [response]
 ```
 
-**Performance:**
-```
-WHEN [user action] THEN [system] SHALL [respond within X seconds/milliseconds]
-```
+### Why EARS Works
 
-**Security:**
-```
-IF [authentication condition] THEN [system] SHALL [security response]
-```
+- "SHALL" makes requirements mandatory and unambiguous
+- The pattern forces you to specify the trigger, not just the behavior
+- Every requirement written this way is inherently testable
+- It eliminates weasel words like "should," "might," "ideally"
 
-## Step-by-Step Process
+## My Process
 
 ### Step 1: Capture User Stories
 
 Format: **As a [role], I want [feature], so that [benefit]**
 
-Focus on:
-- Who is the user? (role)
-- What do they want to accomplish? (feature)
-- Why does it matter? (benefit/value)
+I focus on three things:
+- Who is the user? (not "the system" — an actual human role)
+- What do they want to accomplish?
+- Why does it matter? (this prevents building features nobody needs)
 
-**Example:**
+### Step 2: Write Acceptance Criteria
+
+For each user story, I define specific criteria using EARS:
+
 ```markdown
-As a returning customer, I want to save my payment methods, so that I can checkout faster in the future.
-```
-
-### Step 2: Generate Acceptance Criteria
-
-For each user story, define specific acceptance criteria using EARS:
-
-**Example for payment methods:**
-```markdown
-**User Story:** As a returning customer, I want to save my payment methods, so that I can checkout faster.
+**User Story:** As a returning customer, I want to save payment methods, so that checkout is faster.
 
 **Acceptance Criteria:**
 1. WHEN user adds a valid credit card THEN system SHALL securely store card details
 2. WHEN user adds a card with invalid number THEN system SHALL display validation error
-3. WHEN user has saved cards THEN system SHALL display list during checkout
-4. WHEN user selects saved card THEN system SHALL pre-fill payment form
-5. WHEN user deletes saved card THEN system SHALL remove card from list
-6. IF user is not authenticated THEN system SHALL redirect to login before saving card
-7. WHEN user adds card THEN system SHALL mask all but last 4 digits in display
+3. WHEN user has saved cards THEN system SHALL display them during checkout
+4. WHEN user selects a saved card THEN system SHALL pre-fill the payment form
+5. WHEN user deletes a saved card THEN system SHALL remove it permanently
+6. IF user is not authenticated THEN system SHALL redirect to login before saving
+7. WHEN user adds a card THEN system SHALL mask all but last 4 digits in display
 ```
 
-### Step 3: Identify Edge Cases
+### Step 3: Hunt for Edge Cases
 
-For each requirement, ask:
-- What if the input is empty/null?
-- What if the input is at boundary values?
-- What if the operation fails?
-- What if the user is not authorized?
-- What if there are concurrent operations?
+For every requirement, I ask:
+- What if the input is empty or null?
+- What if we're at boundary values (max length, zero, negative)?
+- What if the operation fails (network, database, external service)?
+- What if the user isn't authorized?
+- What if two users do this simultaneously?
+- What happens on the first use (empty state)?
 
-**Edge case patterns:**
-```markdown
-**Error Handling:**
-- WHEN [operation fails] THEN system SHALL [display error / retry / log]
+### Step 4: Validate
 
-**Boundary Conditions:**
-- WHEN [value equals minimum/maximum] THEN system SHALL [specific behavior]
-
-**Concurrent Access:**
-- WHEN [multiple users access same resource] THEN system SHALL [conflict resolution]
-
-**Empty States:**
-- WHEN [collection is empty] THEN system SHALL [display empty state message]
-```
-
-### Step 4: Validate Requirements
-
-Use this checklist:
-
-**Completeness:**
+Before moving to design, I check:
 - [ ] All user roles identified and addressed
-- [ ] Normal flow scenarios covered
-- [ ] Edge cases documented
-- [ ] Error cases handled
-- [ ] Business rules captured
+- [ ] Happy path covered for each story
+- [ ] Edge cases and error cases documented
+- [ ] Every requirement uses EARS format consistently
+- [ ] No two requirements contradict each other
+- [ ] Each requirement is testable (I can write a test for it)
+- [ ] No implementation details leaked in (requirements say what, not how)
+- [ ] Non-functional requirements captured (performance, security, accessibility)
 
-**Clarity:**
-- [ ] Each requirement uses precise language
-- [ ] No ambiguous terms (fast, easy, user-friendly)
-- [ ] Technical jargon avoided or defined
-- [ ] Expected behaviors are specific
+## Common Mistakes I Watch For
 
-**Consistency:**
-- [ ] EARS format used throughout
-- [ ] Terminology consistent across requirements
-- [ ] No contradictory requirements
-- [ ] Similar scenarios handled similarly
+**Vague requirements:**
+Bad: "System should be user-friendly"
+Good: "WHEN new user completes onboarding THEN system SHALL require no more than 3 steps to reach the main dashboard"
 
-**Testability:**
-- [ ] Each requirement can be verified
-- [ ] Success criteria are observable
-- [ ] Inputs and expected outputs specified
-- [ ] Performance requirements are measurable
+**Implementation leaking into requirements:**
+Bad: "System shall use Redis for caching"
+Good: "WHEN user requests frequently accessed data THEN system SHALL return cached results within 200ms"
 
-## Common Mistakes to Avoid
+**Missing error cases:**
+If you only document the happy path, you'll discover the sad paths during implementation when they're expensive to handle.
 
-### Mistake 1: Vague Requirements
-**Bad:** "System should be fast"
-**Good:** "WHEN user submits search THEN system SHALL return results within 2 seconds"
-
-### Mistake 2: Implementation Details
-**Bad:** "System shall use Redis for caching"
-**Good:** "WHEN user requests frequently accessed data THEN system SHALL return cached results"
-
-### Mistake 3: Missing Error Cases
-**Bad:** Only documenting happy path
-**Good:** Include WHEN/IF statements for all error conditions
-
-### Mistake 4: Untestable Requirements
-**Bad:** "System should be user-friendly"
-**Good:** "WHEN new user completes onboarding THEN system SHALL require no more than 3 clicks to reach main dashboard"
-
-### Mistake 5: Conflicting Requirements
-**Bad:** Requirements that contradict each other
-**Good:** Review all requirements together, resolve conflicts explicitly
-
-## Examples
-
-### Example 1: File Upload Feature
-
-```markdown
-**User Story:** As a user, I want to upload files, so that I can share documents with my team.
-
-**Acceptance Criteria:**
-1. WHEN user selects file under 10MB THEN system SHALL accept file for upload
-2. WHEN user selects file over 10MB THEN system SHALL display "file too large (max 10MB)" error
-3. WHEN user selects unsupported file type THEN system SHALL display "unsupported format" error with list of allowed types
-4. WHEN upload is in progress THEN system SHALL display progress indicator with percentage
-5. WHEN upload completes successfully THEN system SHALL display success message with file link
-6. WHEN upload fails due to network error THEN system SHALL display retry option
-7. IF user is not authenticated THEN system SHALL redirect to login before upload
-8. WHEN user uploads file with same name as existing file THEN system SHALL prompt for rename or replace
-
-**Supported File Types:** PDF, DOC, DOCX, XLS, XLSX, PNG, JPG, GIF
-**Maximum File Size:** 10MB
-**Maximum Files Per Upload:** 5
-```
-
-### Example 2: Search Feature
-
-```markdown
-**User Story:** As a customer, I want to search products, so that I can find items quickly.
-
-**Acceptance Criteria:**
-1. WHEN user enters search term THEN system SHALL display matching products
-2. WHEN search returns results THEN system SHALL show result count
-3. WHEN search returns no results THEN system SHALL display "no products found" with suggestions
-4. WHEN user searches with special characters THEN system SHALL sanitize input and search
-5. WHEN user submits empty search THEN system SHALL display validation message
-6. WHEN results exceed 20 items THEN system SHALL paginate with 20 items per page
-7. WHEN user searches THEN system SHALL return results within 2 seconds
-8. WHEN user types in search box THEN system SHALL show autocomplete suggestions after 3 characters
-
-**Search Fields:** Product name, description, category, SKU
-**Minimum Search Length:** 2 characters
-```
+**Untestable requirements:**
+If you can't write a test for it, it's not a requirement — it's a wish.
 
 ## Requirements Document Template
 
@@ -225,8 +124,8 @@ Use this checklist:
 [Brief description of the feature and its purpose]
 
 ## User Roles
-- [Role 1]: [Description of this user type]
-- [Role 2]: [Description of this user type]
+- [Role 1]: [Description]
+- [Role 2]: [Description]
 
 ## Requirements
 
@@ -236,11 +135,9 @@ Use this checklist:
 **Acceptance Criteria:**
 1. WHEN [event] THEN system SHALL [response]
 2. IF [condition] THEN system SHALL [response]
-3. WHEN [event] AND [condition] THEN system SHALL [response]
 
 **Edge Cases:**
-- [Edge case 1 and how it's handled]
-- [Edge case 2 and how it's handled]
+- [Edge case and how it's handled]
 
 ### Requirement 2: [Name]
 [Continue pattern...]
@@ -248,19 +145,18 @@ Use this checklist:
 ## Non-Functional Requirements
 - **Performance:** [Specific metrics]
 - **Security:** [Security requirements]
-- **Accessibility:** [Accessibility standards]
+- **Accessibility:** [Standards to meet]
 
 ## Out of Scope
-- [Items explicitly not included in this feature]
+- [Items explicitly excluded]
 
 ## Open Questions
-- [Questions that need stakeholder input]
+- [Things that need stakeholder input]
 ```
 
-## Next Steps
+## What Comes Next
 
-After completing requirements:
-1. Review with stakeholders for accuracy
-2. Get explicit approval before proceeding
-3. Move to Design Phase to create technical architecture
-4. Use requirements as foundation for acceptance testing
+Once requirements are validated:
+1. Get explicit approval before proceeding
+2. Move to Design Phase — create the technical architecture
+3. Requirements become the foundation for acceptance testing later

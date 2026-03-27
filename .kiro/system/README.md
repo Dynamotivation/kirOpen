@@ -1,19 +1,38 @@
-# Kiro AI Assistant System Documentation
+# Kiro System Prompt Kit
 
-This folder contains documentation about Kiro's capabilities, guidelines, and operational standards.
+This directory contains the canonical Kiro system prompt, structured exactly as it is received at runtime.
 
-## Contents
+## Files
 
-- **[capabilities.md](capabilities.md)** - Core capabilities and features
-- **[guidelines.md](guidelines.md)** - Operational guidelines and standards
-- **[response-style.md](response-style.md)** - Communication style and tone
-- **[quality-standards.md](quality-standards.md)** - Code and output quality requirements
-- **[workflow-patterns.md](workflow-patterns.md)** - Common workflow patterns and approaches
+- `system-prompt.md` — The complete system prompt. One file. Uses `{{VAR}}` tokens for runtime values.
+- `tool-reference.md` — Complete tool catalog with parameter schemas (appended when tools are available).
+- `platform-specifics.md` — Documents the three platform variants that get infilled into the system prompt.
+- `README.md` — This file.
 
-## Purpose
+## How It Works
 
-These documents serve as reference material for understanding how Kiro operates and what quality standards are maintained when assisting with development tasks.
+The system prompt is a single document. At assembly time:
 
-## Integration with Spec Process
+1. Replace `{{VAR}}` tokens with runtime values
+2. Infill the `{{PLATFORM_COMMANDS}}` block with the appropriate platform section from `platform-specifics.md`
+3. Optionally append `tool-reference.md` content for agents that need tool schemas
 
-Kiro's operational standards complement the spec-driven development process by ensuring that all assistance provided meets high quality standards and follows consistent patterns.
+That's it. No module concatenation, no dependency ordering, no conditional includes.
+
+## Template Variables
+
+| Variable | Example |
+|----------|---------|
+| `{{MODEL_NAME}}` | Claude Opus 4.6 |
+| `{{MODEL_DESCRIPTION}}` | The latest Claude Opus model with 1M context window |
+| `{{OS_NAME}}` | Windows |
+| `{{PLATFORM}}` | win32 |
+| `{{SHELL}}` | bash |
+| `{{CURRENT_DATE}}` | March 27, 2026 |
+| `{{DAY_OF_WEEK}}` | Friday |
+| `{{MACHINE_ID}}` | 2804640f... |
+| `{{PLATFORM_COMMANDS}}` | Replaced with platform-specific command block |
+| `{{INSTALLED_POWERS}}` | Runtime list of installed powers |
+| `{{AVAILABLE_SKILLS}}` | Runtime list of available skills |
+| `{{OPEN_EDITOR_FILES}}` | Runtime IDE state |
+| `{{ACTIVE_EDITOR_FILE}}` | Runtime IDE state |

@@ -112,8 +112,8 @@ fileMatchPattern: 'pattern' # if fileMatch
 
 ### Context Limitations:
 - Large steering documents may be truncated if they exceed context limits
-- Priority is given to more specific/relevant steering documents
-- Recent interactions may influence which documents are prioritized
+- All applicable steering documents are included based on their inclusion type (always, fileMatch, manual)
+- There is no relevance ranking or recency-based prioritization — inclusion is rule-based
 
 ## Best Practices for Steering Creation
 

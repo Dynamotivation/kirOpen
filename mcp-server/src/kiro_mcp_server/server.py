@@ -42,15 +42,15 @@ def get_system_path() -> Path:
     return repo_root / ".kiro" / "system"
 
 
-# System instruction files
+# Legacy flat files (backward compatibility)
 SYSTEM_FILES = {
-    "complete-instructions": "complete-instructions.md",
-    "capabilities": "capabilities.md",
-    "guidelines": "guidelines.md",
-    "quality-standards": "quality-standards.md",
-    "response-style": "response-style.md",
-    "workflow-patterns": "workflow-patterns.md",
+    "system-prompt": "system-prompt.md",
+    "tool-reference": "tool-reference.md",
+    "platform-specifics": "platform-specifics.md",
 }
+
+# No modular files — single canonical prompt
+ALL_FILES = SYSTEM_FILES
 
 
 def read_system_file(filename: str) -> str:
@@ -87,7 +87,7 @@ server = Server("kiro-mcp-server")
 async def list_resources() -> list[Resource]:
     """List available Kiro system instruction resources."""
     resources = []
-    for key, filename in SYSTEM_FILES.items():
+    for key, filename in ALL_FILES.items():
         resources.append(
             Resource(
                 uri=f"kiro://system/{key}",
@@ -106,10 +106,10 @@ async def read_resource(uri: str) -> str:
         raise ValueError(f"Unknown resource URI: {uri}")
     
     key = uri.replace("kiro://system/", "")
-    if key not in SYSTEM_FILES:
+    if key not in ALL_FILES:
         raise ValueError(f"Unknown system instruction: {key}")
     
-    return read_system_file(SYSTEM_FILES[key])
+    return read_system_file(ALL_FILES[key])
 
 
 @server.list_tools()
@@ -124,7 +124,7 @@ async def list_tools() -> list[Tool]:
                 "properties": {
                     "instruction_type": {
                         "type": "string",
-                        "enum": list(SYSTEM_FILES.keys()),
+                        "enum": list(ALL_FILES.keys()),
                         "description": "The type of system instruction to retrieve",
                     }
                 },
@@ -161,17 +161,17 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
     """Handle tool calls."""
     if name == "get_system_instruction":
         instruction_type = arguments["instruction_type"]
-        if instruction_type not in SYSTEM_FILES:
+        if instruction_type not in ALL_FILES:
             return [TextContent(type="text", text=f"Error: Unknown instruction type: {instruction_type}")]
         
-        content = read_system_file(SYSTEM_FILES[instruction_type])
+        content = read_system_file(ALL_FILES[instruction_type])
         return [TextContent(type="text", text=content)]
     
     elif name == "search_instructions":
         query = arguments["query"]
         results = []
         
-        for key, filename in SYSTEM_FILES.items():
+        for key, filename in ALL_FILES.items():
             content = read_system_file(filename)
             matches = search_in_content(query, content)
             if matches:
@@ -184,8 +184,8 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
         return [TextContent(type="text", text=result_text)]
     
     elif name == "list_instructions":
-        instruction_list = "\n".join([f"- {key}: {filename}" for key, filename in SYSTEM_FILES.items()])
-        return [TextContent(type="text", text=f"Available Kiro system instructions:\n\n{instruction_list}")]
+        files = "\n".join([f"- {key}: {filename}" for key, filename in ALL_FILES.items()])
+        return [TextContent(type="text", text=f"Available Kiro system files:\n\n{files}")]
     
     else:
         return [TextContent(type="text", text=f"Error: Unknown tool: {name}")]
@@ -217,7 +217,7 @@ async def list_prompts() -> list[Prompt]:
 async def get_prompt(name: str, arguments: dict[str, str] | None) -> GetPromptResult:
     """Get a specific prompt."""
     if name == "kiro_assistant":
-        complete_instructions = read_system_file(SYSTEM_FILES["complete-instructions"])
+        complete_instructions = read_system_file(SYSTEM_FILES["system-prompt"])
         return GetPromptResult(
             description="Kiro AI Assistant Configuration",
             messages=[
@@ -232,8 +232,7 @@ async def get_prompt(name: str, arguments: dict[str, str] | None) -> GetPromptRe
         )
     
     elif name == "code_review":
-        quality_standards = read_system_file(SYSTEM_FILES["quality-standards"])
-        guidelines = read_system_file(SYSTEM_FILES["guidelines"])
+        system_prompt = read_system_file(SYSTEM_FILES["system-prompt"])
         return GetPromptResult(
             description="Code Review Configuration",
             messages=[
@@ -241,15 +240,14 @@ async def get_prompt(name: str, arguments: dict[str, str] | None) -> GetPromptRe
                     role="user",
                     content=TextContent(
                         type="text",
-                        text=f"Please review code using these standards:\n\n# Quality Standards\n{quality_standards}\n\n# Guidelines\n{guidelines}",
+                        text=f"Please review code using Kiro's standards:\n\n{system_prompt}",
                     ),
                 )
             ],
         )
     
     elif name == "feature_development":
-        workflow_patterns = read_system_file(SYSTEM_FILES["workflow-patterns"])
-        capabilities = read_system_file(SYSTEM_FILES["capabilities"])
+        system_prompt = read_system_file(SYSTEM_FILES["system-prompt"])
         return GetPromptResult(
             description="Feature Development Configuration",
             messages=[
@@ -257,7 +255,7 @@ async def get_prompt(name: str, arguments: dict[str, str] | None) -> GetPromptRe
                     role="user",
                     content=TextContent(
                         type="text",
-                        text=f"Please help with feature development using these patterns:\n\n# Workflow Patterns\n{workflow_patterns}\n\n# Capabilities\n{capabilities}",
+                        text=f"Please help with feature development using Kiro's methodology:\n\n{system_prompt}",
                     ),
                 )
             ],
