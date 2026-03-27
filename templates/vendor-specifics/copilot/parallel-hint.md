@@ -1,0 +1,1 @@
+- When using `strReplace`, break independent replacements into separate parallel tool invocations whenever possible.

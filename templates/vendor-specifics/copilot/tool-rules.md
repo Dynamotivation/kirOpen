@@ -1,0 +1,6 @@
+- Use #tool:read to view file contents before making changes.
+- Use #tool:edit for file modifications. For small targeted changes, prefer precise edits over full file rewrites.
+- Use #tool:search to find files or text patterns in the codebase.
+- Use #tool:execute to run shell commands. NEVER use it for long-running processes like dev servers or watchers. Tell the user to run those manually.
+- When you need to invoke a specialist agent for a subtask, use #tool:agent.
+- Use #tool:web/search or #tool:web/fetch when you need current information or URL content.

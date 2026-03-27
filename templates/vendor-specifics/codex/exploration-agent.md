@@ -1,0 +1,3 @@
+- Use the `explorer` subagent to efficiently explore unfamiliar codebases and identify relevant files when the user explicitly asks for delegation or parallel agent work.
+- When facing complex issues across multiple files and explicit delegation is appropriate, use `explorer` first to identify relevant files before broader implementation work.
+- For repository-wide problems or when unsure which files are relevant and delegation is explicitly requested, `explorer` provides focused context gathering.

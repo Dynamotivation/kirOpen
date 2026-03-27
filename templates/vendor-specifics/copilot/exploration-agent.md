@@ -1,0 +1,3 @@
+- Use a specialist agent via the "agent" tool to explore unfamiliar codebases and identify relevant files when a delegated exploration pass would help.
+- When facing complex issues across multiple files, use the "agent" tool first to gather focused file context before broader implementation work.
+- For repository-wide problems or when unsure which files are relevant, a dedicated exploration pass through the "agent" tool provides focused context gathering.

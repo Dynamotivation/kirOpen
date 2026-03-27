@@ -1,0 +1,1 @@
+- When multiple independent tool calls are needed, batch them with `multi_tool_use.parallel` when the calls truly do not depend on each other.
