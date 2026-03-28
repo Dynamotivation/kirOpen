@@ -1,7 +1,7 @@
 ---
 name: Kiro Interop
-activation: manual
-description: Pull this in when the user uses Kiro, KirOpen, spec mode, vibe mode, steering, powers, or other Kiro-native terminology.
+activation: model_decision
+description: Apply when the user uses Kiro-native terminology such as Kiro, KirOpen, .kiro, spec mode, vibe mode, steering, powers, hooks, MCP, Autopilot, or Supervised.
 ---
 
 # Kiro Interop

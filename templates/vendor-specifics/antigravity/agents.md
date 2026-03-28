@@ -1,3 +1,5 @@
-- Prefer the main KirOpen rule plus reusable workflows instead of extra always-on specialist personas.
-- Use the shared spec-driven workflows for requirements, design, and task planning.
+- When the user wants reusable structured behavior, prefer the generated shared skills under `.agents/skills/` instead of stuffing everything into one persistent rule.
+- Prefer the main KirOpen rule plus reusable skills instead of extra always-on specialist personas.
+- Use the shared spec-driven skills for requirements, design, and task planning.
+- Use generated skills such as `spec-driven-development`, `create-guidance`, `create-steering-documents`, and `port-kiro-configuration-to-kiropen-on-antigravity` when they fit the task.
 - Treat browser capabilities as built-in Antigravity functionality, not as a separate browser expert persona unless the user explicitly asks for one.

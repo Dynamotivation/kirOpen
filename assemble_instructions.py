@@ -4,7 +4,7 @@ Assemble KirOpen guidance into vendor-specific project files.
 Supported targets:
   codex   - .codex/agents/*.toml + .agents/skills/*/SKILL.md
   copilot - .github/agents/*.agent.md + .agents/skills/*/SKILL.md + .github/instructions/ + .github/prompts/
-  antigravity - .agent/rules/kiropen.md + .agent/workflows/*.md
+  antigravity - .agent/rules/kiropen.md + .agents/skills/*/SKILL.md
 
 Modes:
   agent   - keep KirOpen as a custom agent profile
@@ -174,7 +174,7 @@ def build_codex_default_config() -> str:
 
 
 def build_vendor_tokens(vendor_name: str, variables: dict[str, str]) -> dict[str, str]:
-    if vendor_name != "kiro":
+    if vendor_name not in {"kiro", "antigravity"}:
         kiro_interop_primer = read_shared_template("kiro-interop-primer.md")
     else:
         kiro_interop_primer = ""
@@ -836,25 +836,14 @@ def _antigravity_vendor_skills() -> list[tuple[str, str]]:
     return skills
 
 
-def _antigravity_workflow_from_skill(name: str, content: str) -> str:
-    frontmatter, body = split_frontmatter(content)
-    description = frontmatter_value(frontmatter, "description") or name.replace("-", " ")
-    return f"""\
----
-description: {description}
----
-
-{body.strip()}
-"""
-
-
-def _antigravity_core_rule(variables: dict[str, str], mode: str) -> str:
+def _antigravity_rule_file(
+    prompt_body: str, mode: str
+) -> str:
     return render_assembly_template(
         "antigravity",
-        "core-rule.md",
+        "rule-header.md",
+        replacements={"{{PROMPT_BODY}}": prompt_body},
         variables={
-            **variables,
-            **build_vendor_tokens("antigravity", variables),
             "ANTIGRAVITY_ACTIVATION": "always" if mode == "default" else "manual",
         },
     )
@@ -932,17 +921,16 @@ def plan_antigravity_outputs(
     variables: dict[str, str], mode: str
 ) -> dict[Path, str]:
     outputs: dict[Path, str] = {}
-    outputs[Path(".agent") / "rules" / "kiropen.md"] = _antigravity_core_rule(
-        variables, mode
+    prompt_body = assemble_prompt(variables, "antigravity")
+    outputs[Path(".agent") / "rules" / "kiropen.md"] = _antigravity_rule_file(
+        prompt_body, mode
     )
     outputs[Path(".agent") / "rules" / "kiro-interop.md"] = (
         _antigravity_kiro_interop_rule(variables)
     )
 
     for name, content in [*_global_skill_templates(), *_antigravity_vendor_skills()]:
-        outputs[Path(".agent") / "workflows" / f"{name}.md"] = (
-            _antigravity_workflow_from_skill(name, content)
-        )
+        outputs[Path(".agents") / "skills" / name / "SKILL.md"] = content
 
     return outputs
 

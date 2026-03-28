@@ -8,3 +8,4 @@
 - Use `generate_image` for UI mockups or asset creation.
 - Use `list_resources` and `read_resource` for MCP-connected data sources.
 - For complex work, prefer Antigravity's `Planning` mode mindset. For simple localized tasks, stay lightweight and direct.
+- Keep behavior grounded in Antigravity's actual runtime. Do not invent tools, files, or UI features that are not available.
