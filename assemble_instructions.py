@@ -4,6 +4,7 @@ Assemble KirOpen guidance into vendor-specific project files.
 Supported targets:
   codex   - .codex/agents/*.toml + .agents/skills/*/SKILL.md
   copilot - .github/agents/*.agent.md + .agents/skills/*/SKILL.md + .github/instructions/ + .github/prompts/
+  antigravity - .agent/rules/kiropen.md + .agent/workflows/*.md
 
 Modes:
   agent   - keep KirOpen as a custom agent profile
@@ -34,7 +35,7 @@ SKILLS_DIR = TEMPLATES_DIR / "skills"
 PROMPTS_DIR = TEMPLATES_DIR / "prompts"
 STEERING_DIR = TEMPLATES_DIR / "steering"
 
-ALL_TARGETS = ["codex", "copilot"]
+ALL_TARGETS = ["codex", "copilot", "antigravity"]
 ANSI_ORANGE = "\033[38;5;208m"
 ANSI_RESET = "\033[0m"
 
@@ -130,6 +131,13 @@ def collect_skill_bodies(names: list[str]) -> str:
     return "\n\n---\n\n".join(blocks).strip()
 
 
+def frontmatter_value(frontmatter: str, key: str) -> str | None:
+    match = re.search(rf"^{re.escape(key)}:\s*(.+)$", frontmatter, re.MULTILINE)
+    if not match:
+        return None
+    return match.group(1).strip().strip('"').strip("'")
+
+
 def read_assembly_template(*parts: str) -> str:
     return (VENDOR_DIR.joinpath(*parts)).read_text(encoding="utf-8")
 
@@ -166,11 +174,10 @@ def build_codex_default_config() -> str:
 
 
 def build_vendor_tokens(vendor_name: str, variables: dict[str, str]) -> dict[str, str]:
-    kiro_interop_primer = (
-        read_shared_template("kiro-interop-primer.md")
-        if vendor_name != "kiro"
-        else ""
-    )
+    if vendor_name != "kiro":
+        kiro_interop_primer = read_shared_template("kiro-interop-primer.md")
+    else:
+        kiro_interop_primer = ""
     return {
         "KIRO_INTEROP_PRIMER": kiro_interop_primer,
         "VENDOR_TOOL_RULES": read_vendor_snippet(vendor_name, "tool-rules"),
@@ -671,7 +678,7 @@ def _prompt_with_default(prompt: str, default: str) -> str:
 def _prompt_targets() -> list[str]:
     while True:
         raw = _prompt_with_default(
-            "Targets (all, codex, copilot, or comma-separated list)", "all"
+            "Targets (all, codex, copilot, antigravity, or comma-separated list)", "all"
         ).lower()
         if raw == "all":
             return list(ALL_TARGETS)
@@ -818,6 +825,52 @@ def _copilot_prompts() -> list[tuple[str, str]]:
     ]
 
 
+def _antigravity_vendor_skills() -> list[tuple[str, str]]:
+    skill_dir = VENDOR_DIR / "antigravity" / "skills"
+    if not skill_dir.exists():
+        return []
+    skills = []
+    for skill_file in skill_dir.glob("*.SKILL.md"):
+        name = skill_file.name.replace(".SKILL.md", "")
+        skills.append((name, skill_file.read_text(encoding="utf-8")))
+    return skills
+
+
+def _antigravity_workflow_from_skill(name: str, content: str) -> str:
+    frontmatter, body = split_frontmatter(content)
+    description = frontmatter_value(frontmatter, "description") or name.replace("-", " ")
+    return f"""\
+---
+description: {description}
+---
+
+{body.strip()}
+"""
+
+
+def _antigravity_core_rule(variables: dict[str, str], mode: str) -> str:
+    return render_assembly_template(
+        "antigravity",
+        "core-rule.md",
+        variables={
+            **variables,
+            **build_vendor_tokens("antigravity", variables),
+            "ANTIGRAVITY_ACTIVATION": "always" if mode == "default" else "manual",
+        },
+    )
+
+
+def _antigravity_kiro_interop_rule(variables: dict[str, str]) -> str:
+    return render_assembly_template(
+        "antigravity",
+        "kiro-interop-rule.md",
+        variables={
+            **variables,
+            "KIRO_INTEROP_PRIMER": read_shared_template("kiro-interop-primer.md"),
+        },
+    )
+
+
 def plan_codex_outputs(
     variables: dict[str, str], mode: str, root_doc_filename: str
 ) -> dict[Path, str]:
@@ -875,6 +928,25 @@ tools: ["*"]
     return outputs
 
 
+def plan_antigravity_outputs(
+    variables: dict[str, str], mode: str
+) -> dict[Path, str]:
+    outputs: dict[Path, str] = {}
+    outputs[Path(".agent") / "rules" / "kiropen.md"] = _antigravity_core_rule(
+        variables, mode
+    )
+    outputs[Path(".agent") / "rules" / "kiro-interop.md"] = (
+        _antigravity_kiro_interop_rule(variables)
+    )
+
+    for name, content in [*_global_skill_templates(), *_antigravity_vendor_skills()]:
+        outputs[Path(".agent") / "workflows" / f"{name}.md"] = (
+            _antigravity_workflow_from_skill(name, content)
+        )
+
+    return outputs
+
+
 def plan_target_outputs(
     target: str,
     variables: dict[str, str],
@@ -891,6 +963,8 @@ def plan_target_outputs(
         )
     if target == "copilot":
         return plan_copilot_outputs(variables, mode)
+    if target == "antigravity":
+        return plan_antigravity_outputs(variables, mode)
     raise ValueError(f"Unknown target: {target}")
 
 

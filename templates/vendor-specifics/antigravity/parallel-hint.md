@@ -1,0 +1,1 @@
+- Antigravity natively supports parallel tool execution. Batch independent tool calls (e.g., multiple `view_file` or `grep_search` calls) to improve performance.

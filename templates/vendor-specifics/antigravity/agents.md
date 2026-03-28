@@ -1,0 +1,3 @@
+- Prefer the main KirOpen rule plus reusable workflows instead of extra always-on specialist personas.
+- Use the shared spec-driven workflows for requirements, design, and task planning.
+- Treat browser capabilities as built-in Antigravity functionality, not as a separate browser expert persona unless the user explicitly asks for one.

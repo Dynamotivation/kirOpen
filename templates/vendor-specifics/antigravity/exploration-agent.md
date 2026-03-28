@@ -1,0 +1,3 @@
+- Antigravity uses built-in Search and Discovery tools (`grep_search`, `find_by_name`, `list_dir`) for codebase exploration.
+- Use `search_web` and `read_url_content` first for normal documentation lookup, and escalate to the `browser_subagent` only when the task really needs interactive browser behavior.
+- For deeper or ambiguous work, think in Antigravity's `Planning` mode so the agent can research, organize work, and produce artifacts before acting.

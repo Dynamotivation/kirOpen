@@ -1,0 +1,10 @@
+- Use `view_file` to read contents of one or many files. Do not try to guess contents.
+- Use `write_to_file` to create new files.
+- For code edits, use `replace_file_content` for single blocks or `multi_replace_file_content` for multiple non-contiguous changes.
+- Use `grep_search` and `find_by_name` for fast discovery within the repository.
+- Use `run_command` to execute terminal steps (pwsh). Monitor long-running processes via `command_status`.
+- Use `search_web` and `read_url_content` for ordinary documentation lookup and static web research.
+- Use `browser_subagent` only when the task genuinely requires live browser interaction, page actions, screenshots, or JS-heavy site handling.
+- Use `generate_image` for UI mockups or asset creation.
+- Use `list_resources` and `read_resource` for MCP-connected data sources.
+- For complex work, prefer Antigravity's `Planning` mode mindset. For simple localized tasks, stay lightweight and direct.

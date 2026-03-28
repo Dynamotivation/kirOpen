@@ -1,0 +1,7 @@
+- **Conversation Modes**: `Planning` for deeper multi-step work and `Fast` for simpler localized tasks.
+- **Artifacts**: Antigravity produces task lists, implementation plans, walkthroughs, screenshots, browser recordings, and code diffs to show its work.
+- **Browser**: Antigravity has a built-in browser subagent that can navigate, click, type, inspect pages, and record browser activity when browser capabilities are enabled.
+- **Context**: Antigravity supports `@` references for files, directories, MCP servers, and other available context sources.
+- **Workflows**: Saved workflows can be invoked with `/workflow-name` for reusable repeatable tasks.
+- **Safety**: Terminal execution, review, and browser JavaScript execution are governed by configurable approval policies.
+- **MCP**: Antigravity supports Model Context Protocol integrations.

@@ -29,10 +29,10 @@ KirOpen translates Kiro concepts such as specs, steering, hooks, MCP, powers, vi
 
 - Codex
 - GitHub Copilot
+- Antigravity
 
 ## Planned Harnesses
 
-- Antigravity
 - Kilo Code
 - Claude Code
 - Cursor
@@ -52,7 +52,7 @@ python assemble_instructions.py
 Supported CLI usage:
 
 ```bash
-python assemble_instructions.py [--platform win32|darwin|linux] [--output-dir <dir>] [--mode agent|default] [codex] [copilot]
+python assemble_instructions.py [--platform win32|darwin|linux] [--output-dir <dir>] [--mode agent|default] [codex] [copilot] [antigravity]
 ```
 
 If your system exposes Python as `python3`, use `python3` in the examples below.
@@ -60,9 +60,9 @@ If your system exposes Python as `python3`, use `python3` in the examples below.
 ## Choosing A Mode
 
 - `agent`
-  Use this when you want KirOpen to stay mostly opt-in. In this mode, the builder generates harness-specific agents, skills, prompts, and scoped guidance surfaces, but it does not try to replace the harness's default project-wide behavior unless that harness always needs a supporting file for activation.
+  Use this when you want KirOpen to stay mostly opt-in. In this mode, the builder generates harness-specific agents, workflows, skills, prompts, and scoped guidance surfaces, but it does not try to replace the harness's default project-wide behavior unless that harness always needs a supporting file for activation.
 - `default`
-  Use this when you want KirOpen to shape the harness's default behavior for the whole repository. In this mode, the builder also emits the harness's main default instruction file, such as `CODEX.md` for Codex or `.github/copilot-instructions.md` for Copilot.
+  Use this when you want KirOpen to shape the harness's default behavior for the whole repository. In this mode, the builder also emits the harness's main default instruction surface, such as `CODEX.md` for Codex, `.github/copilot-instructions.md` for Copilot, or an always-on main rule for Antigravity.
   If you are generating only for Codex, you can optionally use `AGENTS.md` instead via `--codex-root-doc agents`, but that can cause issues later if you switch AI harnesses.
 
 Practical difference:
@@ -93,9 +93,11 @@ Examples:
 ```bash
 python /path/to/kirOpen/assemble_instructions.py --output-dir . codex
 python /path/to/kirOpen/assemble_instructions.py --output-dir . copilot
+python /path/to/kirOpen/assemble_instructions.py --output-dir . antigravity
 python /path/to/kirOpen/assemble_instructions.py --mode default --output-dir . codex
 python /path/to/kirOpen/assemble_instructions.py --mode default --codex-root-doc agents --output-dir . codex
 python /path/to/kirOpen/assemble_instructions.py --mode default --output-dir . copilot
+python /path/to/kirOpen/assemble_instructions.py --mode default --output-dir . antigravity
 ```
 
 
@@ -165,6 +167,25 @@ If you built in `default` mode, also copy:
 
 </details>
 
+<details>
+<summary><strong>Antigravity</strong></summary>
+
+Generate into a temporary review folder first:
+
+```bash
+python assemble_instructions.py --output-dir review_antigravity antigravity
+```
+
+In `agent` mode, review and copy:
+
+- `review_antigravity/.agent/rules/kiropen.md` -> `<repo>/.agent/rules/kiropen.md`
+- `review_antigravity/.agent/rules/kiro-interop.md` -> `<repo>/.agent/rules/kiro-interop.md`
+- `review_antigravity/.agent/workflows/*.md` -> `<repo>/.agent/workflows/*.md`
+
+In `default` mode, copy the same files, but note that `kiropen.md` is generated as an always-on rule instead of a manual rule.
+
+</details>
+
 
 ### How To Build It Yourself
 
@@ -183,7 +204,7 @@ There are currently no third-party Python dependencies to install.
 Build both supported harnesses into a review folder:
 
 ```bash
-python assemble_instructions.py --output-dir review_build codex copilot
+python assemble_instructions.py --output-dir review_build codex copilot antigravity
 ```
 
 Build one harness only:
@@ -191,6 +212,7 @@ Build one harness only:
 ```bash
 python assemble_instructions.py --output-dir review_build codex
 python assemble_instructions.py --output-dir review_build copilot
+python assemble_instructions.py --output-dir review_build antigravity
 ```
 
 Build in default-behavior mode:
@@ -198,6 +220,7 @@ Build in default-behavior mode:
 ```bash
 python assemble_instructions.py --mode default --output-dir review_build codex
 python assemble_instructions.py --mode default --output-dir review_build copilot
+python assemble_instructions.py --mode default --output-dir review_build antigravity
 ```
 
 Run in interactive mode:
