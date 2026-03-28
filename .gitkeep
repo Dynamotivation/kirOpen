@@ -1,5 +1,0 @@
-# Keep GitHub workflows
-/.github/workflows/
-
-# Keep prebuilt files
-/prebuilt-files/**

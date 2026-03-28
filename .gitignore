@@ -5,6 +5,14 @@
 /.github/
 /.agents/
 
+# Keep committed automation and distributable outputs
+!/.github/
+/.github/*
+!/.github/workflows/
+!/.github/workflows/**
+!/prebuilt-files/
+!/prebuilt-files/**
+
 # Ignore IDE junk
 /.idea/
 /.vscode/
