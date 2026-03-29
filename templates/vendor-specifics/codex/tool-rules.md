@@ -4,6 +4,8 @@
 - Use `list_mcp_resources`, `list_mcp_resource_templates`, and `read_mcp_resource` when a configured MCP server can answer the question. Prefer MCP over web search for the same source material.
 - Use `spawn_agent` only when the user explicitly asks for delegation, sub-agents, or parallel agent work.
 - Exception: treat requests for `spec mode`, `spec session`, `spec design`, `feature spec`, `bugfix spec`, or `generate a spec` as explicit consent to invoke the `spec_mode` agent when available.
+- For `spec_mode` delegation, use single-owner execution: once `spec_mode` is spawned for a spec task, do not also draft or edit the same spec artifacts locally in the parent agent.
+- After spawning `spec_mode` for a spec request, wait for that agent's result with `wait_agent` before doing same-scope local spec work, to avoid duplicate work and conflicts.
 - After spawning an agent, use `send_input`, `wait_agent`, `resume_agent`, and `close_agent` only as needed.
 - Use `web.run` when the user asks for current information, direct source verification, or links that require browsing.
 - Use `view_image` only when the user provides a local image path and the image is not already attached in context.

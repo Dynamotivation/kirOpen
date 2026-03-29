@@ -259,6 +259,19 @@ class PromptIdentityTests(unittest.TestCase):
             prompt,
         )
 
+    def test_codex_prompt_requires_wait_agent_after_spec_mode_delegation(self) -> None:
+        variables = get_variables("codex", platform_override="win32")
+        prompt = assemble_prompt(variables, "codex")
+
+        self.assertIn(
+            "wait for that agent's result with `wait_agent` before doing same-scope local spec work",
+            prompt,
+        )
+        self.assertIn(
+            "After delegating to `spec_mode`, call `wait_agent` for that result before continuing same-scope spec authoring locally.",
+            prompt,
+        )
+
 
 class SpecPhaseGateInfixTests(unittest.TestCase):
     def test_spec_skill_contains_required_infix_markers(self) -> None:
@@ -296,6 +309,14 @@ class SpecPhaseGateInfixTests(unittest.TestCase):
         )
         self.assertIn(
             "Do not treat planning behavior, plan UIs, or task-plan tools as user approval",
+            spec_agent,
+        )
+        self.assertIn(
+            "owns the delegated spec scope until completion",
+            spec_agent,
+        )
+        self.assertIn(
+            "after `wait_agent` returns this agent's result",
             spec_agent,
         )
         self.assertNotIn(
@@ -338,6 +359,22 @@ class PortSkillMismatchGuardTests(unittest.TestCase):
         self.assertIn(
             "target harness may have better aptitude for its own conventions",
             text,
+        )
+
+
+class OmittedSkillsTests(unittest.TestCase):
+    def test_ai_prompting_skill_is_not_emitted_for_codex(self) -> None:
+        outputs = plan_outputs_for_targets(["codex"], "agent")
+        self.assertNotIn(
+            Path(".agents") / "skills" / "ai-prompting" / "SKILL.md",
+            outputs,
+        )
+
+    def test_ai_prompting_skill_is_not_emitted_for_copilot(self) -> None:
+        outputs = plan_outputs_for_targets(["copilot"], "agent")
+        self.assertNotIn(
+            Path(".agents") / "skills" / "ai-prompting" / "SKILL.md",
+            outputs,
         )
 
 
