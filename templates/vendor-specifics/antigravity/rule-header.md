@@ -1,6 +1,5 @@
 ---
-name: KirOpen
-activation: {{ANTIGRAVITY_ACTIVATION}}
+trigger: {{ANTIGRAVITY_TRIGGER}}
 ---
 
 {{PROMPT_BODY}}

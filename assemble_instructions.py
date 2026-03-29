@@ -11,7 +11,7 @@ Modes:
   default - emit KirOpen into the harness's default-behavior file instead
 
 Usage:
-  python assemble_instructions.py [--platform win32|darwin|linux] [--output-dir .] [--mode agent|default] [targets ...]
+  python assemble_instructions.py [--platform windows|macos|linux] [--output-dir .] [--mode agent|default|always] [targets ...]
 
 If no targets are given, all targets are generated.
 """
@@ -38,6 +38,13 @@ STEERING_DIR = TEMPLATES_DIR / "steering"
 ALL_TARGETS = ["codex", "copilot", "antigravity"]
 ANSI_ORANGE = "\033[38;5;208m"
 ANSI_RESET = "\033[0m"
+PLATFORM_ALIASES = {
+    "windows": "win32",
+    "win32": "win32",
+    "macos": "darwin",
+    "darwin": "darwin",
+    "linux": "linux",
+}
 
 SPEC_SKILLS = [
     "spec-driven-development",
@@ -469,7 +476,6 @@ def _print_orange(text: str) -> None:
         return
     print(text)
 
-
 def resolve_codex_root_doc(
     targets: list[str], mode: str, codex_root_doc: str
 ) -> str:
@@ -489,11 +495,12 @@ def resolve_codex_root_doc(
 def _codex_trust_instructions_text(
     config_path: Path, repo_key: str, root_doc_filename: str
 ) -> str:
+    config_file = config_path.parent / "config.toml"
     return (
         f"In order to make Codex follow the {root_doc_filename} file, you need to trust this repo. "
-        f"Do you want us to add this repo to your trusted list in your {config_path.parent}/config.toml file?\n"
+        f"Do you want us to add this repo to your trusted list in your \"{config_file}\" file?\n"
         "You can also trust this repo manually using the Codex CLI, Codex App or by adding this to your "
-        f"{config_path.parent}/config.toml\n"
+        f"\"{config_file}\"\n"
         f"{_render_codex_project_header(repo_key)}\n"
         'trust_level = "trusted"'
     )
@@ -678,7 +685,8 @@ def _prompt_with_default(prompt: str, default: str) -> str:
 def _prompt_targets() -> list[str]:
     while True:
         raw = _prompt_with_default(
-            "Targets (all, codex, copilot, antigravity, or comma-separated list)", "all"
+            "Which harness are you targetting? (all, codex, copilot, antigravity, or comma-separated list)",
+            "all",
         ).lower()
         if raw == "all":
             return list(ALL_TARGETS)
@@ -695,31 +703,37 @@ def _prompt_targets() -> list[str]:
 
 def _prompt_mode() -> str:
     while True:
-        mode = _prompt_with_default("Mode (agent or default)", "agent").lower()
-        if mode in {"agent", "default"}:
-            return mode
-        print("Invalid mode for interactive mode. Choose 'agent' or 'default'.")
+        mode = _prompt_with_default(
+            "Do you want KirOpen to always be on or make it an agent? (always/agent)",
+            "agent",
+        ).lower()
+        if mode == "agent":
+            return "agent"
+        if mode in {"always", "default"}:
+            return "default"
+        print("Invalid mode for interactive mode. Choose 'agent' or 'always'.")
 
 
 def _prompt_platform() -> str | None:
     while True:
         platform_value = _prompt_with_default(
-            "Platform override (auto, win32, darwin, linux)", "auto"
+            "Platform override (auto, windows, macos, linux)", "auto"
         ).lower()
         if platform_value == "auto":
             return None
-        if platform_value in {"win32", "darwin", "linux"}:
-            return platform_value
+        mapped = PLATFORM_ALIASES.get(platform_value)
+        if mapped:
+            return mapped
         print(
-            "Invalid platform for interactive mode. Choose 'auto', 'win32', 'darwin', or 'linux'."
+            "Invalid platform for interactive mode. Choose 'auto', 'windows', 'macos', or 'linux'."
         )
 
 
 def interactive_args() -> argparse.Namespace:
-    print("Interactive mode")
+    print("Starting interactive mode, press CTRL+C to cancel.")
     targets = _prompt_targets()
     mode = _prompt_mode()
-    output_dir = _prompt_with_default("Output directory", ".")
+    output_dir = _prompt_with_default("Repo directory to install to", ".")
     platform_value = _prompt_platform()
     return argparse.Namespace(
         targets=targets,
@@ -729,6 +743,16 @@ def interactive_args() -> argparse.Namespace:
         codex_trust="prompt",
         codex_root_doc="auto",
     )
+
+
+def normalize_mode(mode: str) -> str:
+    return "default" if mode == "always" else mode
+
+
+def normalize_platform_override(platform_value: str | None) -> str | None:
+    if platform_value is None:
+        return None
+    return PLATFORM_ALIASES.get(platform_value.lower(), platform_value)
 
 
 # ── Codex builder ─────────────────────────────────────────────────────────
@@ -844,7 +868,7 @@ def _antigravity_rule_file(
         "rule-header.md",
         replacements={"{{PROMPT_BODY}}": prompt_body},
         variables={
-            "ANTIGRAVITY_ACTIVATION": "always" if mode == "default" else "manual",
+            "ANTIGRAVITY_TRIGGER": "always_on" if mode == "default" else "manual",
         },
     )
 
@@ -985,7 +1009,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--platform",
-        choices=["win32", "darwin", "linux"],
+        choices=["windows", "macos", "linux", "win32", "darwin"],
         default=None,
     )
     parser.add_argument(
@@ -995,7 +1019,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--mode",
-        choices=["agent", "default"],
+        choices=["agent", "default", "always"],
         default="agent",
         help="Whether KirOpen should stay a custom agent or replace default harness behavior.",
     )
@@ -1021,6 +1045,9 @@ def main() -> None:
         args = interactive_args()
     else:
         args = parser.parse_args()
+
+    args.mode = normalize_mode(args.mode)
+    args.platform = normalize_platform_override(args.platform)
 
     targets: list[str] = args.targets if args.targets else list(ALL_TARGETS)
     out = Path(args.output_dir).resolve()

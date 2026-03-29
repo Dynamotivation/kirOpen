@@ -1,6 +1,5 @@
 ---
-name: Kiro Interop
-activation: model_decision
+trigger: model_decision
 description: Apply when the user uses Kiro-native terminology such as Kiro, KirOpen, .kiro, spec mode, vibe mode, steering, powers, hooks, MCP, Autopilot, or Supervised.
 ---
 

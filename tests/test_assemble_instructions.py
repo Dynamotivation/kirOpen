@@ -5,12 +5,15 @@ from pathlib import Path
 from unittest.mock import patch
 
 from assemble_instructions import (
+    _prompt_platform,
     assemble_prompt,
     build_codex_default_choice_prompt,
     codex_project_trust_level,
     get_variables,
     maybe_handle_codex_trust,
     normalize_codex_default_choice,
+    normalize_mode,
+    normalize_platform_override,
     normalize_repo_path_for_codex,
     _prompt_mode,
     _prompt_targets,
@@ -131,8 +134,9 @@ class CodexTrustConfigTests(unittest.TestCase):
 
 class CodexRootDocTests(unittest.TestCase):
     def test_codex_default_choice_prompt_includes_agents_option(self) -> None:
+        config_path = Path(r"C:\Users\Daniel\.codex\config.toml")
         prompt = build_codex_default_choice_prompt(
-            Path(r"C:\Users\Daniel\.codex\config.toml"),
+            config_path,
             r"d:\source\repos\kirOpen Codex Test",
             "CODEX.md",
             True,
@@ -149,6 +153,7 @@ class CodexRootDocTests(unittest.TestCase):
         self.assertIn("1. Auto trust", prompt)
         self.assertIn("2. Trust manually", prompt)
         self.assertIn("3. Use AGENTS.md instead", prompt)
+        self.assertIn(f"\"{config_path}\"", prompt)
 
     def test_codex_default_choice_parser_supports_three_options(self) -> None:
         self.assertEqual(normalize_codex_default_choice("1", True), "yes")
@@ -165,6 +170,11 @@ class CodexRootDocTests(unittest.TestCase):
 
         self.assertEqual(selection, "default")
         self.assertIn("Invalid mode for interactive mode.", stdout.getvalue())
+
+    def test_prompt_mode_accepts_always_alias(self) -> None:
+        with patch("builtins.input", side_effect=["always"]):
+            selection = _prompt_mode()
+        self.assertEqual(selection, "default")
 
     def test_prompt_targets_retries_after_invalid_choice(self) -> None:
         with (
@@ -237,6 +247,15 @@ class CodexRootDocTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             resolve_codex_root_doc(["codex", "copilot"], "default", "agents")
 
+    def test_prompt_platform_uses_friendly_names(self) -> None:
+        with patch("builtins.input", side_effect=["windows"]):
+            selection = _prompt_platform()
+        self.assertEqual(selection, "win32")
+
+    def test_normalizers_support_always_and_friendly_platforms(self) -> None:
+        self.assertEqual(normalize_mode("always"), "default")
+        self.assertEqual(normalize_platform_override("macos"), "darwin")
+
 
 class PromptIdentityTests(unittest.TestCase):
     def test_non_kiro_prompts_include_explicit_kiropen_identity(self) -> None:
@@ -248,6 +267,29 @@ class PromptIdentityTests(unittest.TestCase):
             variables = get_variables(vendor, platform_override="win32")
             prompt = assemble_prompt(variables, vendor)
             self.assertIn(expected_identity, prompt)
+
+
+class AntigravityInteropRuleTests(unittest.TestCase):
+    def test_antigravity_kiro_interop_rule_uses_trigger_frontmatter(self) -> None:
+        outputs = plan_outputs_for_targets(["antigravity"], "agent")
+        interop_rule = outputs[Path(".agent") / "rules" / "kiro-interop.md"]
+
+        self.assertIn("trigger: model_decision", interop_rule)
+        self.assertNotIn("activation: model_decision", interop_rule)
+
+    def test_antigravity_kiropen_rule_uses_trigger_frontmatter_default_mode(self) -> None:
+        outputs = plan_outputs_for_targets(["antigravity"], "default")
+        kiropen_rule = outputs[Path(".agent") / "rules" / "kiropen.md"]
+
+        self.assertIn("trigger: always_on", kiropen_rule)
+        self.assertNotIn("activation:", kiropen_rule)
+
+    def test_antigravity_kiropen_rule_uses_trigger_frontmatter_agent_mode(self) -> None:
+        outputs = plan_outputs_for_targets(["antigravity"], "agent")
+        kiropen_rule = outputs[Path(".agent") / "rules" / "kiropen.md"]
+
+        self.assertIn("trigger: manual", kiropen_rule)
+        self.assertNotIn("activation:", kiropen_rule)
 
 
 if __name__ == "__main__":

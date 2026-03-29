@@ -4,6 +4,9 @@
 /.kiro/
 /.github/
 /.agents/
+AGENTS.md
+CODEX.md
+CLAUDE.md
 
 # Keep committed automation and distributable outputs
 !/.github/
