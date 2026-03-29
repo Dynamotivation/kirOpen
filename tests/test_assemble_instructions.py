@@ -250,5 +250,45 @@ class PromptIdentityTests(unittest.TestCase):
             self.assertIn(expected_identity, prompt)
 
 
+class SpecPhaseGateInfixTests(unittest.TestCase):
+    def test_spec_skill_contains_required_infix_markers(self) -> None:
+        skill_path = (
+            Path(__file__).resolve().parent.parent
+            / "templates"
+            / "skills"
+            / "spec-driven-development"
+            / "SKILL.md"
+        )
+        skill_text = skill_path.read_text(encoding="utf-8")
+
+        markers = [
+            "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_WHEN_TO_USE -->",
+            "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_PHASE_1 -->",
+            "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_PHASE_2 -->",
+            "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_PHASE_3 -->",
+            "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_WORKFLOW -->",
+            "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_LIGHTWEIGHT -->",
+        ]
+        for marker in markers:
+            self.assertIn(marker, skill_text)
+
+    def test_codex_spec_agent_includes_injected_phase_gates(self) -> None:
+        outputs = plan_outputs_for_targets(["codex"], "agent")
+        spec_agent = outputs[Path(".codex") / "agents" / "kiropen_spec.toml"]
+
+        self.assertIn("produce exactly one phase per turn by default", spec_agent)
+        self.assertIn("approve requirements", spec_agent)
+        self.assertIn("design then auto tasks", spec_agent)
+        self.assertIn("generate all phases now", spec_agent)
+        self.assertIn(
+            "Do not treat planning behavior, plan UIs, or task-plan tools as user approval",
+            spec_agent,
+        )
+        self.assertNotIn(
+            "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_WHEN_TO_USE -->",
+            spec_agent,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

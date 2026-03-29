@@ -46,6 +46,14 @@ SPEC_SKILLS = [
     "quality-assurance",
     "troubleshooting",
 ]
+SPEC_PHASE_GATE_MARKER_FILES = {
+    "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_WHEN_TO_USE -->": "when-to-use.md",
+    "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_PHASE_1 -->": "phase-1.md",
+    "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_PHASE_2 -->": "phase-2.md",
+    "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_PHASE_3 -->": "phase-3.md",
+    "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_WORKFLOW -->": "workflow.md",
+    "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_LIGHTWEIGHT -->": "lightweight.md",
+}
 
 # ── Shared helpers ────────────────────────────────────────────────────────
 
@@ -727,8 +735,29 @@ def interactive_args() -> argparse.Namespace:
 # ── Codex builder ─────────────────────────────────────────────────────────
 
 
+def _codex_spec_skill_infixes() -> dict[str, str]:
+    infixes: dict[str, str] = {}
+    for marker, filename in SPEC_PHASE_GATE_MARKER_FILES.items():
+        infixes[marker] = read_assembly_template(
+            "codex", "spec-phase-gates-infixes", filename
+        ).strip()
+    return infixes
+
+
+def _inject_skill_infixes(
+    skill_body: str, infixes: dict[str, str]
+) -> str:
+    rendered = skill_body
+    for marker, infix_text in infixes.items():
+        if marker not in rendered:
+            raise ValueError(f"Missing skill infix marker: {marker}")
+        rendered = rendered.replace(marker, infix_text)
+    return rendered
+
+
 def _codex_spec_skill_body() -> str:
     combined = collect_skill_bodies(SPEC_SKILLS)
+    combined = _inject_skill_infixes(combined, _codex_spec_skill_infixes())
     return render_assembly_template(
         "codex",
         "spec_skill_body_prefix.md",

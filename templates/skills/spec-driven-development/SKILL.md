@@ -29,11 +29,15 @@ Skip it when:
 - It's a critical hotfix that needs to ship now
 - The pattern is well-established and there's nothing to figure out
 
+<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_WHEN_TO_USE -->
+
 ## The Three Phases
 
 ### Phase 1: Requirements
 
 I start by figuring out what we're actually building. Not how — what.
+
+<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_PHASE_1 -->
 
 The output is a `.kiro/specs/<feature>/requirements.md` with:
 - User stories expressing who wants what and why
@@ -55,6 +59,8 @@ I don't put implementation details in requirements. Requirements describe behavi
 ### Phase 2: Design
 
 Once requirements are solid, I create a `.kiro/specs/<feature>/design.md` covering:
+
+<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_PHASE_2 -->
 - Overview of the approach
 - Architecture and component interactions
 - Data models with field types and validation rules
@@ -77,6 +83,8 @@ I design for current requirements, not hypothetical futures. Over-engineering is
 
 Design gets broken into a `.kiro/specs/<feature>/tasks.md` — a sequenced implementation plan:
 
+<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_PHASE_3 -->
+
 ```markdown
 - [ ] 1. [Major component/epic]
 - [ ] 1.1 [Specific coding task]
@@ -94,6 +102,8 @@ I sequence tasks to:
 - Maintain traceability back to requirements
 
 ## How I Actually Work Through This
+
+<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_WORKFLOW -->
 
 1. I don't skip phases. Requirements before design, design before tasks. Shortcuts here create problems later.
 
@@ -118,6 +128,8 @@ This means external specs, schemas, or documentation can influence the implement
 ## Lightweight Variant
 
 For medium-complexity work that doesn't warrant a full spec:
+
+<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_LIGHTWEIGHT -->
 
 - Brief requirements (key user stories and acceptance criteria only)
 - High-level design (architecture sketch, key decisions, no exhaustive data models)
