@@ -5,8 +5,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 from assemble_instructions import (
+    assemble_prompt,
     build_codex_default_choice_prompt,
     codex_project_trust_level,
+    get_variables,
     maybe_handle_codex_trust,
     normalize_codex_default_choice,
     normalize_repo_path_for_codex,
@@ -234,6 +236,18 @@ class CodexRootDocTests(unittest.TestCase):
     def test_agents_root_doc_is_rejected_for_mixed_targets(self) -> None:
         with self.assertRaises(SystemExit):
             resolve_codex_root_doc(["codex", "copilot"], "default", "agents")
+
+
+class PromptIdentityTests(unittest.TestCase):
+    def test_non_kiro_prompts_include_explicit_kiropen_identity(self) -> None:
+        expected_identity = (
+            "I'm KirOpen, an open reimplementation of Amazon's Kiro AI harness."
+        )
+
+        for vendor in ("codex", "copilot"):
+            variables = get_variables(vendor, platform_override="win32")
+            prompt = assemble_prompt(variables, vendor)
+            self.assertIn(expected_identity, prompt)
 
 
 if __name__ == "__main__":

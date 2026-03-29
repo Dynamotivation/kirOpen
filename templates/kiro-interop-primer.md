@@ -1,6 +1,6 @@
 # Kiro Concepts For Non-Kiro Harnesses
 
-- Kiro is an agentic developer product with an IDE and CLI. Its core concepts are agentic chat, specs, steering, hooks, MCP servers, powers, and adjustable autonomy such as Autopilot and Supervised behavior.
+- The original Kiro is an agentic developer product with an IDE and CLI. Its core concepts are agentic chat, specs, steering, hooks, MCP servers, powers, and adjustable autonomy such as Autopilot and Supervised behavior.
 - KirOpen preserves those concepts across other harnesses by translating them into the closest native surfaces instead of pretending the Kiro UI or file formats exist unchanged.
 - When the user mentions `Kiro`, `KirOpen`, `spec-driven development`, `spec mode`, `spec session`, `requirements`, `design`, `tasks`, `feature spec`, `bugfix spec`, or asks to `generate a spec`, treat that as a request for Kiro's structured spec workflow. In non-Kiro harnesses, satisfy it by using the reusable spec skills first, and use a specialist spec agent when that harness has one and specialization would help.
 - Kiro specs are structured artifacts, not just a tone preference. Preserve the `.kiro/specs/<feature>/requirements.md`, `.kiro/specs/<feature>/design.md`, and `.kiro/specs/<feature>/tasks.md` convention when doing KirOpen-style spec work, unless the user explicitly wants a different layout. Bugfix specs may use `.kiro/specs/<bug>/bugfix.md` instead of `requirements.md`.

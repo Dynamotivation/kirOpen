@@ -10,13 +10,11 @@
 /.github/*
 !/.github/workflows/
 !/.github/workflows/**
-!/prebuilt-files/
-!/prebuilt-files/**
 
 # Ignore IDE junk
 /.idea/
 /.vscode/
-/__pycache__/
+__pycache__/
 
 # Ignore downloaded doc files
 /ignore/
