@@ -125,8 +125,9 @@ python assemble_instructions.py --output-dir review_codex codex
 
 In `agent` mode, review and copy:
 
-- `review_codex/.codex/agents/kiropen_spec.toml` -> `<repo>/.codex/agents/kiropen_spec.toml`
+- `review_codex/.codex/agents/spec_mode.toml` -> `<repo>/.codex/agents/spec_mode.toml`
 - `review_codex/.agents/skills/...` -> `<repo>/.agents/skills/...`
+- `review_codex/.kiropen/codex-guide.md` -> `<repo>/.kiropen/codex-guide.md`
 - `review_codex/.codex/copy-me-into-your-api-directories/AGENTS.override.md` -> Move into the API directory that should receive that scoped guidance
 - `review_codex/.codex/copy-me-into-your-environment-directories/AGENTS.override.md` -> Move into the environment or config directory that should receive that scoped guidance
 - `review_codex/.codex/copy-me-into-your-frontend-directories/AGENTS.override.md` -> Move into the frontend or app directory that should receive that scoped guidance

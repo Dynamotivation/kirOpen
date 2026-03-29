@@ -2,6 +2,15 @@
 
 Analyze the repository's `.kiro/` folder and port the useful configuration into Copilot-compatible KirOpen assets.
 
+## Cross-Harness Confirmation Gate
+
+If the user is actually targeting a different harness than Copilot, do not proceed immediately.
+
+1. Refuse execution once and ask for explicit confirmation.
+2. Tell the user that the target harness may have better aptitude for its own conventions.
+3. Continue only if the user explicitly confirms they still want to proceed.
+4. If they do not confirm, stop and do not perform migration actions.
+
 Inspect and classify:
 - `.kiro/skills/`
 - `.kiro/steering/`

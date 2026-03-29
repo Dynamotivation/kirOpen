@@ -37,6 +37,7 @@ STEERING_DIR = TEMPLATES_DIR / "steering"
 ALL_TARGETS = ["codex", "copilot"]
 ANSI_ORANGE = "\033[38;5;208m"
 ANSI_RESET = "\033[0m"
+BUILDER_VERSION = "0.1.0"
 
 SPEC_SKILLS = [
     "spec-driven-development",
@@ -204,6 +205,25 @@ def _global_skill_templates() -> list[tuple[str, str]]:
     for path in sorted(SKILLS_DIR.glob("*/SKILL.md")):
         skills.append((path.parent.name, path.read_text(encoding="utf-8")))
     return skills
+
+
+def _vendor_runtime_guides(
+    vendor_name: str, variables: dict[str, str]
+) -> list[tuple[str, str]]:
+    guide_dir = VENDOR_DIR / vendor_name / "runtime-guides"
+    if not guide_dir.exists():
+        return []
+
+    rendered_guides: list[tuple[str, str]] = []
+    guide_variables = {**variables, "BUILDER_VERSION": BUILDER_VERSION}
+    for guide_path in sorted(guide_dir.glob("*.md")):
+        rendered_guides.append(
+            (
+                guide_path.name,
+                infill(guide_path.read_text(encoding="utf-8"), guide_variables),
+            )
+        )
+    return rendered_guides
 
 
 def assemble_prompt(
@@ -768,10 +788,10 @@ def _codex_spec_skill_body() -> str:
 def _codex_custom_agents() -> list[tuple[str, str]]:
     return [
         (
-            "kiropen_spec.toml",
+            "spec_mode.toml",
             f'''\
-name = "kiropen_spec"
-description = "Spec-driven development specialist for requirements, design, and task breakdown."
+name = "spec_mode"
+description = "Spec-mode specialist for requirements, design, and task breakdown. When users ask for spec mode/spec design, this aligned workflow can be invoked directly."
 developer_instructions = """
 {_codex_spec_skill_body()}
 """
@@ -867,6 +887,9 @@ def plan_codex_outputs(
     for relative_path, content in _codex_steering_placeholders():
         outputs[relative_path] = content
 
+    for filename, content in _vendor_runtime_guides("codex", variables):
+        outputs[Path(".kiropen") / filename] = content
+
     return outputs
 
 
@@ -900,6 +923,9 @@ tools: ["*"]
 
     for filename, content in _copilot_prompts():
         outputs[Path(".github") / "prompts" / filename] = content
+
+    for filename, content in _vendor_runtime_guides("copilot", variables):
+        outputs[Path(".kiropen") / filename] = content
 
     return outputs
 

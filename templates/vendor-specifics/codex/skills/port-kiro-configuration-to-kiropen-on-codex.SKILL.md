@@ -7,6 +7,15 @@ description: Port Kiro workspace configuration into Codex-compatible KirOpen ass
 
 Use this when a repository still contains Kiro-era configuration and the user wants it migrated into Codex-compatible KirOpen assets.
 
+## Cross-Harness Confirmation Gate
+
+If the user is actually targeting a different harness than Codex, do not proceed immediately.
+
+1. Refuse execution once and ask for explicit confirmation.
+2. Tell the user that the target harness may have better aptitude for its own conventions.
+3. Continue only if the user explicitly confirms they still want to proceed.
+4. If they do not confirm, stop and do not perform migration actions.
+
 ## Scope
 
 Inspect `.kiro/` and translate only the compatible configuration areas:
@@ -26,7 +35,7 @@ Do not disturb existing spec-driven workflow outputs such as:
 - `.agents/skills/task-breakdown/`
 - `.agents/skills/quality-assurance/`
 - `.agents/skills/troubleshooting/`
-- `.codex/agents/kiropen_spec.toml`
+- `.codex/agents/spec_mode.toml`
 
 ## Translation Targets
 

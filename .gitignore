@@ -4,6 +4,7 @@
 /.kiro/
 /.github/
 /.agents/
+/.kiropen/
 
 # Keep committed automation and distributable outputs
 !/.github/

@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from assemble_instructions import (
+    BUILDER_VERSION,
     assemble_prompt,
     build_codex_default_choice_prompt,
     codex_project_trust_level,
@@ -249,6 +250,15 @@ class PromptIdentityTests(unittest.TestCase):
             prompt = assemble_prompt(variables, vendor)
             self.assertIn(expected_identity, prompt)
 
+    def test_codex_prompt_treats_spec_intent_as_explicit_spec_mode_consent(self) -> None:
+        variables = get_variables("codex", platform_override="win32")
+        prompt = assemble_prompt(variables, "codex")
+
+        self.assertIn(
+            "treat requests for `spec mode`, `spec session`, `spec design`, `feature spec`, `bugfix spec`, or `generate a spec` as explicit consent to invoke the `spec_mode` agent when available",
+            prompt,
+        )
+
 
 class SpecPhaseGateInfixTests(unittest.TestCase):
     def test_spec_skill_contains_required_infix_markers(self) -> None:
@@ -274,12 +284,16 @@ class SpecPhaseGateInfixTests(unittest.TestCase):
 
     def test_codex_spec_agent_includes_injected_phase_gates(self) -> None:
         outputs = plan_outputs_for_targets(["codex"], "agent")
-        spec_agent = outputs[Path(".codex") / "agents" / "kiropen_spec.toml"]
+        spec_agent = outputs[Path(".codex") / "agents" / "spec_mode.toml"]
 
         self.assertIn("produce exactly one phase per turn by default", spec_agent)
         self.assertIn("approve requirements", spec_agent)
         self.assertIn("design then auto tasks", spec_agent)
         self.assertIn("generate all phases now", spec_agent)
+        self.assertIn(
+            "treat that as explicit consent to invoke this agent",
+            spec_agent,
+        )
         self.assertIn(
             "Do not treat planning behavior, plan UIs, or task-plan tools as user approval",
             spec_agent,
@@ -288,6 +302,61 @@ class SpecPhaseGateInfixTests(unittest.TestCase):
             "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_WHEN_TO_USE -->",
             spec_agent,
         )
+
+
+class PortSkillMismatchGuardTests(unittest.TestCase):
+    def test_codex_port_skill_includes_cross_harness_confirmation_gate(self) -> None:
+        path = (
+            Path(__file__).resolve().parent.parent
+            / "templates"
+            / "vendor-specifics"
+            / "codex"
+            / "skills"
+            / "port-kiro-configuration-to-kiropen-on-codex.SKILL.md"
+        )
+        text = path.read_text(encoding="utf-8")
+
+        self.assertIn("Cross-Harness Confirmation Gate", text)
+        self.assertIn("Refuse execution once and ask for explicit confirmation.", text)
+        self.assertIn(
+            "target harness may have better aptitude for its own conventions",
+            text,
+        )
+
+    def test_copilot_port_prompt_includes_cross_harness_confirmation_gate(self) -> None:
+        path = (
+            Path(__file__).resolve().parent.parent
+            / "templates"
+            / "vendor-specifics"
+            / "copilot"
+            / "port-kiro-configuration-to-kiropen-on-copilot.prompt.md"
+        )
+        text = path.read_text(encoding="utf-8")
+
+        self.assertIn("Cross-Harness Confirmation Gate", text)
+        self.assertIn("Refuse execution once and ask for explicit confirmation.", text)
+        self.assertIn(
+            "target harness may have better aptitude for its own conventions",
+            text,
+        )
+
+
+class RuntimeGuideDocsTests(unittest.TestCase):
+    def test_codex_guide_includes_builder_version_and_required_quirks(self) -> None:
+        outputs = plan_outputs_for_targets(["codex"], "agent")
+        text = outputs[Path(".kiropen") / "codex-guide.md"]
+
+        self.assertIn(f"Builder version: `{BUILDER_VERSION}`", text)
+        self.assertIn("## Mapping Table", text)
+        self.assertIn("Plan Mode Competes With Spec Mode", text)
+        self.assertIn("Spec Mode Auto Progression", text)
+        self.assertIn("@spec_mode", text)
+        self.assertIn("Higher-Level Policy Overrides Template Behavior", text)
+        self.assertNotIn("Generated File Drift", text)
+
+    def test_copilot_target_does_not_emit_codex_runtime_guide(self) -> None:
+        outputs = plan_outputs_for_targets(["copilot"], "agent")
+        self.assertNotIn(Path(".kiropen") / "codex-guide.md", outputs)
 
 
 if __name__ == "__main__":
