@@ -7,18 +7,22 @@ from unittest.mock import patch
 
 from assemble_instructions import (
     BUILDER_VERSION,
+    _prompt_platform,
     assemble_prompt,
     build_codex_default_choice_prompt,
     codex_project_trust_level,
     get_variables,
     maybe_handle_codex_trust,
     normalize_codex_default_choice,
+    normalize_mode,
+    normalize_platform_override,
     normalize_repo_path_for_codex,
     _prompt_mode,
     _prompt_targets,
     plan_outputs_for_targets,
     resolve_codex_root_doc,
     upsert_codex_project_trust,
+    validate_mode_for_targets,
 )
 
 
@@ -133,8 +137,9 @@ class CodexTrustConfigTests(unittest.TestCase):
 
 class CodexRootDocTests(unittest.TestCase):
     def test_codex_default_choice_prompt_includes_agents_option(self) -> None:
+        config_path = Path(r"C:\Users\Daniel\.codex\config.toml")
         prompt = build_codex_default_choice_prompt(
-            Path(r"C:\Users\Daniel\.codex\config.toml"),
+            config_path,
             r"d:\source\repos\kirOpen Codex Test",
             "CODEX.md",
             True,
@@ -151,6 +156,7 @@ class CodexRootDocTests(unittest.TestCase):
         self.assertIn("1. Auto trust", prompt)
         self.assertIn("2. Trust manually", prompt)
         self.assertIn("3. Use AGENTS.md instead", prompt)
+        self.assertIn(f"\"{config_path}\"", prompt)
 
     def test_codex_default_choice_parser_supports_three_options(self) -> None:
         self.assertEqual(normalize_codex_default_choice("1", True), "yes")
@@ -163,10 +169,20 @@ class CodexRootDocTests(unittest.TestCase):
             patch("builtins.input", side_effect=["wrong", "default"]),
             patch("sys.stdout", new_callable=StringIO) as stdout,
         ):
-            selection = _prompt_mode()
+            selection = _prompt_mode(["codex"])
 
         self.assertEqual(selection, "default")
         self.assertIn("Invalid mode for interactive mode.", stdout.getvalue())
+
+    def test_prompt_mode_accepts_always_alias(self) -> None:
+        with patch("builtins.input", side_effect=["always"]):
+            selection = _prompt_mode(["codex"])
+        self.assertEqual(selection, "default")
+
+    def test_copilot_prompt_mode_accepts_lite(self) -> None:
+        with patch("builtins.input", side_effect=["lite"]):
+            selection = _prompt_mode(["copilot"])
+        self.assertEqual(selection, "lite")
 
     def test_prompt_targets_retries_after_invalid_choice(self) -> None:
         with (
@@ -239,11 +255,26 @@ class CodexRootDocTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             resolve_codex_root_doc(["codex", "copilot"], "default", "agents")
 
+    def test_prompt_platform_uses_friendly_names(self) -> None:
+        with patch("builtins.input", side_effect=["windows"]):
+            selection = _prompt_platform()
+        self.assertEqual(selection, "win32")
+
+    def test_normalizers_support_always_and_friendly_platforms(self) -> None:
+        self.assertEqual(normalize_mode("always"), "default")
+        self.assertEqual(normalize_mode("always-on"), "default")
+        self.assertEqual(normalize_mode("agent-only"), "agent")
+        self.assertEqual(normalize_platform_override("macos"), "darwin")
+
+    def test_lite_mode_is_rejected_for_non_copilot_targets(self) -> None:
+        with self.assertRaises(SystemExit):
+            validate_mode_for_targets(["codex"], "lite")
+
 
 class PromptIdentityTests(unittest.TestCase):
     def test_non_kiro_prompts_include_explicit_kiropen_identity(self) -> None:
         expected_identity = (
-            "I'm KirOpen, an open reimplementation of Amazon's Kiro AI harness."
+            "You are KirOpen, an open, cross harness reimplementation of Amazon's Kiro AI assistant"
         )
 
         for vendor in ("codex", "copilot"):
@@ -309,6 +340,52 @@ class SpecPhaseGateTests(unittest.TestCase):
         self.assertIn("produce exactly one phase per turn by default", spec_agent)
         self.assertIn("stop and wait for the user to indicate what they want next", spec_agent)
         self.assertIn("Do not use Copilot's plan mode", spec_agent)
+
+
+class CopilotModeOutputTests(unittest.TestCase):
+    def test_copilot_default_emits_full_outputs(self) -> None:
+        outputs = plan_outputs_for_targets(["copilot"], "default")
+
+        self.assertIn(Path(".github") / "copilot-instructions.md", outputs)
+        self.assertIn(Path(".github") / "agents" / "kiropen.agent.md", outputs)
+        self.assertIn(Path(".github") / "agents" / "spec-mode.agent.md", outputs)
+        self.assertIn(
+            Path(".github") / "instructions" / "api.instructions.md",
+            outputs,
+        )
+        self.assertIn(
+            Path(".agents") / "skills" / "spec-driven-development" / "SKILL.md",
+            outputs,
+        )
+        self.assertIn(Path(".kiropen") / "copilot-guide.md", outputs)
+
+    def test_copilot_lite_emits_instruction_and_agents_only(self) -> None:
+        outputs = plan_outputs_for_targets(["copilot"], "lite")
+
+        self.assertIn(Path(".github") / "copilot-instructions.md", outputs)
+        self.assertIn(Path(".github") / "agents" / "kiropen.agent.md", outputs)
+        self.assertIn(Path(".github") / "agents" / "spec-mode.agent.md", outputs)
+        self.assertFalse(
+            any(path.parts[:2] == (".github", "instructions") for path in outputs)
+        )
+        self.assertFalse(
+            any(path.parts[:2] == (".agents", "skills") for path in outputs)
+        )
+        self.assertNotIn(Path(".kiropen") / "copilot-guide.md", outputs)
+
+    def test_copilot_agent_mode_emits_agents_only(self) -> None:
+        outputs = plan_outputs_for_targets(["copilot"], "agent")
+
+        self.assertIn(Path(".github") / "agents" / "kiropen.agent.md", outputs)
+        self.assertIn(Path(".github") / "agents" / "spec-mode.agent.md", outputs)
+        self.assertNotIn(Path(".github") / "copilot-instructions.md", outputs)
+        self.assertFalse(
+            any(path.parts[:2] == (".github", "instructions") for path in outputs)
+        )
+        self.assertFalse(
+            any(path.parts[:2] == (".agents", "skills") for path in outputs)
+        )
+        self.assertNotIn(Path(".kiropen") / "copilot-guide.md", outputs)
 
 
 class PortSkillMismatchGuardTests(unittest.TestCase):
@@ -401,10 +478,11 @@ class UnfilledMarkerTests(unittest.TestCase):
             )
 
     def test_no_unfilled_markers_in_any_permutation(self) -> None:
-        from assemble_instructions import ALL_TARGETS
-
-        modes = ["agent", "default"]
-        for target in ALL_TARGETS:
+        target_modes = {
+            "codex": ["agent", "default"],
+            "copilot": ["agent", "default", "lite"],
+        }
+        for target, modes in target_modes.items():
             for mode in modes:
                 with self.subTest(target=target, mode=mode):
                     outputs = plan_outputs_for_targets(

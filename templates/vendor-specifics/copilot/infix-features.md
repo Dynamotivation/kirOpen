@@ -9,6 +9,7 @@
 ## Custom Instructions
 
 - In agent mode, Copilot behavior is primarily carried by `.github/agents/*.agent.md`.
+- Copilot custom agents can be selected as primary agents when the surface supports that flow.
 - If the user explicitly wants default workspace behavior, repository-wide instructions can live in `.github/copilot-instructions.md`.
 - Path-specific instructions live in `.github/instructions/*.instructions.md` with `applyTo` frontmatter globs.
 - If the user asks you to update project standards, edit the appropriate file in `.github/instructions/` when those files exist.

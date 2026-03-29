@@ -1,6 +1,7 @@
 # Custom Agents
 
 - You can hand off tasks to other custom agents using #tool:agent.
+- The `kiropen` agent is suitable when the user wants KirOpen selected as the primary Copilot agent.
 - The `spec-mode` agent specializes in spec-driven development for requirements, design, and task breakdown.
 - For spec workflow intent (`spec mode`, `spec design`, `feature spec`, `bugfix spec`, or `generate a spec`), treat that request itself as explicit delegation consent for `spec-mode`.
 - For `spec-mode` requests, use single-owner flow: once delegated, do not create or edit the same spec artifacts in the parent while the agent is running, even under a changed name.

@@ -44,25 +44,25 @@ The following Harnesses and IDEs are supported.
 
 [Install into new project](#installing-into-empty-repositories)
 
-<table>
+<table width="100%">
   <tr>
-    <td align="center"><img src="docs/screenshots/copilot-1.avif" /></td>
-    <td align="center"><img src="docs/screenshots/copilot-2.avif" /></td>
-    <td align="center"><img src="docs/screenshots/copilot-3.avif" /></td>
+    <td align="center" width="33.33%"><img src="docs/screenshots/copilot-1.avif" width="100%" /></td>
+    <td align="center" width="33.33%"><img src="docs/screenshots/copilot-2.avif" width="100%" /></td>
+    <td align="center" width="33.33%"><img src="docs/screenshots/copilot-3.avif" width="100%" /></td>
   </tr>
   <tr>
-    <td align="center"><em>KirOpen in action</em></td>
-    <td align="center"><em>Spec Mode and Bugfix</em></td>
-    <td align="center"><em>Spec Mode selection</em></td>
+    <td align="center" width="33.33%"><em>KirOpen in action</em></td>
+    <td align="center" width="33.33%"><em>Spec Mode and Bugfix</em></td>
+    <td align="center" width="33.33%"><em>Spec Mode selection</em></td>
   </tr>
 </table>
 
-<table>
+<table width="100%">
   <tr>
-    <td align="center"><img src="docs/screenshots/copilot-4.avif" /></td>
+    <td align="center" width="100%"><img src="docs/screenshots/copilot-4.avif" width="100%" /></td>
   </tr>
   <tr>
-    <td align="center"><em>Spec Mode in CLI</em></td>
+    <td align="center" width="100%"><em>Spec Mode in CLI</em></td>
   </tr>
 </table>
 
@@ -72,12 +72,21 @@ The following Harnesses and IDEs are supported.
 |---|---|---|
 | Kiro Migration Skill | ✅ | Generated as `port-kiro-configuration-to-kiropen-on-copilot` for porting Kiro configuration into Copilot-native features. |
 | Vibe Mode | ✅ | Fully supported vibe mode as long as KirOpen provided `copilot-instructions.md` is installed. Disable plan mode during vibe sessions. |
-| Spec Mode | ✅ | Implemented entirely in KirOpen's `copilot-instructions.md` and skills due to recurring bugs in agent-skill-interactions in Copilot. Disable plan mode during spec sessions. |
-| Spec Agent | ⚠️ | `kiropen.agent.md` is generated, but contains token inefficient skill workarounds due to mentioned issues. Use only if you can't spare `copilot-instructions.md` and the skills won't behave correctly with your custom files in place. |
+| Spec Mode | ✅ | Supported through `copilot-instructions.md` in Always-on and Lite, with delegation into `spec-mode.agent.md` to keep the main context smaller. Disable plan mode during spec sessions. |
+| Spec Agent | ✅ | `kiropen.agent.md` and `spec-mode.agent.md` are generated and can be used as primary Copilot agents. |
 | UI Dialogs | ✅ | KirOpen will use Copilot UI and CLI dialogs like Kiro, with chat fallback if tool is unavailable. |
 | Kiro Hooks | ⚠️ | Copilot hooks are supported, but behavior depends on the active Copilot surface. Per GitHub docs they are available for Copilot coding agent and Copilot CLI, and Windows hook definitions must use the `powershell` field instead of `bash`. |
 | Steering Support | ✅ | Steering wrappers in `.github/instructions/*.instructions.md` pointing to `.kiro/steering/*` are supported and can be generated using the migration skill. |
 | Kiro Powers | ⚠️ | Kiro Powers are not supported as a first-class Copilot feature, but migration skill offers best effort conversions using scripts, skills and MCPs. |
+
+#### Copilot Profiles
+
+- Always-on
+  Emits the full `.github/copilot-instructions.md` plus agents, path-scoped instructions, skills, and the Copilot runtime guide.
+- Lite
+  Emits a slimmer `.github/copilot-instructions.md` plus the KirOpen agents. It keeps the global file small and mainly routes structured spec work into `spec-mode`.
+- Agent-only
+  Emits only `.github/agents/kiropen.agent.md` and `.github/agents/spec-mode.agent.md`.
 
 #### IDE & CLI Support
 
@@ -98,21 +107,28 @@ The following Harnesses and IDEs are supported.
 Generate into a temporary review folder first:
 
 ```bash
-python assemble_instructions.py --output-dir review_copilot copilot
+python assemble_instructions.py --mode default --output-dir review_copilot/always-on copilot
+python assemble_instructions.py --mode lite --output-dir review_copilot/lite copilot
+python assemble_instructions.py --mode agent-only --output-dir review_copilot/agent-only copilot
 ```
 
-In `agent` mode, review and copy:
+In Agent-only mode, review and copy:
 
-- `review_copilot/.github/agents/kiropen.agent.md` -> `<repo>/.github/agents/kiropen.agent.md`
-- `review_copilot/.github/agents/spec-mode.agent.md` -> `<repo>/.github/agents/spec-mode.agent.md`
-- `review_copilot/.github/instructions/*.instructions.md` -> `<repo>/.github/instructions/*.instructions.md`
-- `review_copilot/.agents/skills/*/SKILL.md` -> `<repo>/.agents/skills/*/SKILL.md`
+- `review_copilot/agent-only/.github/agents/kiropen.agent.md` -> `<repo>/.github/agents/kiropen.agent.md`
+- `review_copilot/agent-only/.github/agents/spec-mode.agent.md` -> `<repo>/.github/agents/spec-mode.agent.md`
 
-If you built in `default` mode, also copy:
+If you built in Lite mode, also copy:
 
-- `review_copilot/.github/copilot-instructions.md` -> `<repo>/.github/copilot-instructions.md`
+- `review_copilot/lite/.github/copilot-instructions.md` -> `<repo>/.github/copilot-instructions.md`
 
-> **Known issue:** Copilot agent subagent depth is currently limited to 1, which means the `spec-mode` agent cannot spawn a discovery subagent during the spec workflow. Skills should be usable by agents per the [this resolved Copilot issue](https://github.com/github/copilot-cli/issues/839), but is reported broken again ([related report](https://github.com/easingthemes/dx-aem-flow/issues/20)). Workaround: run codebase exploration in the parent agent before delegating to `spec-mode`, or use default mode where the main agent runs skills directly with full tool access.
+If you built in Always-on mode, also copy:
+
+- `review_copilot/always-on/.github/copilot-instructions.md` -> `<repo>/.github/copilot-instructions.md`
+- `review_copilot/always-on/.github/instructions/*.instructions.md` -> `<repo>/.github/instructions/*.instructions.md`
+- `review_copilot/always-on/.agents/skills/*/SKILL.md` -> `<repo>/.agents/skills/*/SKILL.md`
+- `review_copilot/always-on/.kiropen/copilot-guide.md` -> `<repo>/.kiropen/copilot-guide.md`
+
+`default` is the builder spelling for Always-on, and `agent` is the builder spelling for Agent-only.
 
 </details>
 
@@ -211,7 +227,7 @@ python assemble_instructions.py
 Supported CLI usage:
 
 ```bash
-python assemble_instructions.py [--platform win32|darwin|linux] [--output-dir <dir>] [--mode agent|default] [codex] [copilot]
+python assemble_instructions.py [--platform windows|macos|linux] [--output-dir <dir>] [--mode agent|default|lite|always-on|agent-only] [codex] [copilot]
 ```
 
 If your system exposes Python as `python3`, use `python3` in the examples below.
@@ -219,16 +235,17 @@ If your system exposes Python as `python3`, use `python3` in the examples below.
 ## Choosing A Mode
 
 - `agent`
-  Use this when you want KirOpen to stay mostly opt-in. In this mode, the builder generates harness-specific agents, skills, prompts, and scoped guidance surfaces, but it does not try to replace the harness's default project-wide behavior unless that harness always needs a supporting file for activation.
+  Use this when you want KirOpen to stay mostly opt-in. For Copilot this is the Agent-only profile, which emits just the KirOpen agent files. For other harnesses it remains the opt-in agent mode.
 - `default`
-  Use this when you want KirOpen to shape the harness's default behavior for the whole repository. In this mode, the builder also emits the harness's main default instruction file, such as `CODEX.md` for Codex or `.github/copilot-instructions.md` for Copilot.
+  Use this when you want KirOpen to shape the harness's default behavior for the whole repository. For Copilot this is the Always-on profile, which emits the full `.github/copilot-instructions.md` plus the supporting Copilot assets.
   If you are generating only for Codex, you can optionally use `AGENTS.md` instead via `--codex-root-doc agents`, but that can cause issues later if you switch AI harnesses.
+- `lite`
+  Copilot-only. Use this when you want a slimmer `.github/copilot-instructions.md` that keeps the KirOpen preamble and key behavior but pushes structured spec work into the `spec-mode` agent instead of carrying the full repo scaffolding.
 
 Practical difference:
 
-- `agent` mode is safer when you want to add KirOpen alongside an existing setup without changing every chat by default
-- `default` mode is better when KirOpen should become the repo's primary assistant behavior immediately
-- Both modes still generate the reusable KirOpen workflow assets for the selected harness
+- For Copilot, Agent-only is the smallest install, Lite is the lean middle ground, and Always-on is the full install
+- For Codex, `agent` and `default` still map to the original two-mode setup
 - `default` mode adds more global behavior and should be chosen deliberately, especially in repos that already have harness-specific instruction files
 
 ## Installation
@@ -255,6 +272,8 @@ python /path/to/kirOpen/assemble_instructions.py --output-dir . copilot
 python /path/to/kirOpen/assemble_instructions.py --mode default --output-dir . codex
 python /path/to/kirOpen/assemble_instructions.py --mode default --codex-root-doc agents --output-dir . codex
 python /path/to/kirOpen/assemble_instructions.py --mode default --output-dir . copilot
+python /path/to/kirOpen/assemble_instructions.py --mode lite --output-dir . copilot
+python /path/to/kirOpen/assemble_instructions.py --mode agent-only --output-dir . copilot
 ```
 
 
@@ -297,6 +316,8 @@ Build one harness only:
 ```bash
 python assemble_instructions.py --output-dir review_build codex
 python assemble_instructions.py --output-dir review_build copilot
+python assemble_instructions.py --mode lite --output-dir review_build/copilot-lite copilot
+python assemble_instructions.py --mode agent-only --output-dir review_build/copilot-agent-only copilot
 ```
 
 Build in default-behavior mode:

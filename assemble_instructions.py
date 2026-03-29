@@ -8,9 +8,10 @@ Supported targets:
 Modes:
   agent   - keep KirOpen as a custom agent profile
   default - emit KirOpen into the harness's default-behavior file instead
+  lite    - Copilot-only slim default instructions + agent files
 
 Usage:
-  python assemble_instructions.py [--platform win32|darwin|linux] [--output-dir .] [--mode agent|default] [targets ...]
+  python assemble_instructions.py [--platform windows|macos|linux] [--output-dir .] [--mode agent|default|lite|always-on|agent-only] [targets ...]
 
 If no targets are given, all targets are generated.
 """
@@ -38,6 +39,21 @@ ALL_TARGETS = ["codex", "copilot"]
 ANSI_ORANGE = "\033[38;5;208m"
 ANSI_RESET = "\033[0m"
 BUILDER_VERSION = "0.1.0"
+PLATFORM_ALIASES = {
+    "windows": "win32",
+    "win32": "win32",
+    "macos": "darwin",
+    "darwin": "darwin",
+    "linux": "linux",
+}
+MODE_ALIASES = {
+    "agent": "agent",
+    "agent-only": "agent",
+    "default": "default",
+    "always": "default",
+    "always-on": "default",
+    "lite": "lite",
+}
 
 SPEC_SKILLS = [
     "spec-driven-development",
@@ -486,7 +502,6 @@ def _print_orange(text: str) -> None:
         return
     print(text)
 
-
 def resolve_codex_root_doc(
     targets: list[str], mode: str, codex_root_doc: str
 ) -> str:
@@ -506,11 +521,12 @@ def resolve_codex_root_doc(
 def _codex_trust_instructions_text(
     config_path: Path, repo_key: str, root_doc_filename: str
 ) -> str:
+    config_file = config_path.parent / "config.toml"
     return (
         f"In order to make Codex follow the {root_doc_filename} file, you need to trust this repo. "
-        f"Do you want us to add this repo to your trusted list in your {config_path.parent}/config.toml file?\n"
+        f"Do you want us to add this repo to your trusted list in your \"{config_file}\" file?\n"
         "You can also trust this repo manually using the Codex CLI, Codex App or by adding this to your "
-        f"{config_path.parent}/config.toml\n"
+        f"\"{config_file}\"\n"
         f"{_render_codex_project_header(repo_key)}\n"
         'trust_level = "trusted"'
     )
@@ -695,7 +711,8 @@ def _prompt_with_default(prompt: str, default: str) -> str:
 def _prompt_targets() -> list[str]:
     while True:
         raw = _prompt_with_default(
-            "Targets (all, codex, copilot, or comma-separated list)", "all"
+            "Which harness are you targeting? (all, codex, copilot, or comma-separated list)",
+            "all",
         ).lower()
         if raw == "all":
             return list(ALL_TARGETS)
@@ -710,33 +727,53 @@ def _prompt_targets() -> list[str]:
         )
 
 
-def _prompt_mode() -> str:
+def _prompt_mode(targets: list[str] | None = None) -> str:
+    if targets == ["copilot"]:
+        while True:
+            mode = normalize_mode(
+                _prompt_with_default(
+                    "Copilot mode (always-on, lite, agent-only)",
+                    "agent-only",
+                ).lower()
+            )
+            if mode in {"default", "lite", "agent"}:
+                return mode
+            print(
+                "Invalid mode for interactive mode. Choose 'always-on', 'lite', or 'agent-only'."
+            )
+
     while True:
-        mode = _prompt_with_default("Mode (agent or default)", "agent").lower()
+        mode = normalize_mode(
+            _prompt_with_default(
+                "Do you want KirOpen to always be on or make it an agent? (always/agent)",
+                "agent",
+            ).lower()
+        )
         if mode in {"agent", "default"}:
             return mode
-        print("Invalid mode for interactive mode. Choose 'agent' or 'default'.")
+        print("Invalid mode for interactive mode. Choose 'agent' or 'always'.")
 
 
 def _prompt_platform() -> str | None:
     while True:
         platform_value = _prompt_with_default(
-            "Platform override (auto, win32, darwin, linux)", "auto"
+            "Platform override (auto, windows, macos, linux)", "auto"
         ).lower()
         if platform_value == "auto":
             return None
-        if platform_value in {"win32", "darwin", "linux"}:
-            return platform_value
+        mapped = PLATFORM_ALIASES.get(platform_value)
+        if mapped:
+            return mapped
         print(
-            "Invalid platform for interactive mode. Choose 'auto', 'win32', 'darwin', or 'linux'."
+            "Invalid platform for interactive mode. Choose 'auto', 'windows', 'macos', or 'linux'."
         )
 
 
 def interactive_args() -> argparse.Namespace:
-    print("Interactive mode")
+    print("Starting interactive mode, press CTRL+C to cancel.")
     targets = _prompt_targets()
-    mode = _prompt_mode()
-    output_dir = _prompt_with_default("Output directory", ".")
+    mode = _prompt_mode(targets)
+    output_dir = _prompt_with_default("Repo directory to install to", ".")
     platform_value = _prompt_platform()
     return argparse.Namespace(
         targets=targets,
@@ -746,6 +783,23 @@ def interactive_args() -> argparse.Namespace:
         codex_trust="prompt",
         codex_root_doc="auto",
     )
+
+
+def normalize_mode(mode: str) -> str:
+    return MODE_ALIASES.get(mode.lower(), mode)
+
+
+def normalize_platform_override(platform_value: str | None) -> str | None:
+    if platform_value is None:
+        return None
+    return PLATFORM_ALIASES.get(platform_value.lower(), platform_value)
+
+
+def validate_mode_for_targets(targets: list[str], mode: str) -> None:
+    if mode == "lite" and targets != ["copilot"]:
+        raise SystemExit(
+            "Lite mode is only supported when generating GitHub Copilot alone."
+        )
 
 
 # ── Codex builder ─────────────────────────────────────────────────────────
@@ -850,6 +904,19 @@ def _copilot_vendor_skills() -> list[tuple[str, str]]:
     ]
 
 
+def _copilot_kiropen_agent(variables: dict[str, str]) -> str:
+    prompt_body = assemble_prompt(variables, "copilot", "agent")
+    return f"""\
+---
+name: kiropen
+description: "KirOpen AI assistant. Systematic spec-driven development with clear requirements, thoughtful design, and sequenced implementation. Speaks like a dev, writes minimal code."
+tools: ["*"]
+---
+
+{prompt_body}
+"""
+
+
 def plan_codex_outputs(
     variables: dict[str, str], mode: str, root_doc_filename: str
 ) -> dict[Path, str]:
@@ -881,33 +948,30 @@ def plan_copilot_outputs(
     variables: dict[str, str], mode: str
 ) -> dict[Path, str]:
     outputs: dict[Path, str] = {}
-    prompt_body = assemble_prompt(variables, "copilot", mode)
+    outputs[Path(".github") / "agents" / "kiropen.agent.md"] = (
+        _copilot_kiropen_agent(variables)
+    )
+    outputs[Path(".github") / "agents" / "spec-mode.agent.md"] = (
+        _copilot_spec_agent()
+    )
+
+    if mode in {"default", "lite"}:
+        prompt_mode = "default" if mode == "default" else "lite"
+        outputs[Path(".github") / "copilot-instructions.md"] = assemble_prompt(
+            variables,
+            "copilot",
+            prompt_mode,
+        )
 
     if mode == "default":
-        outputs[Path(".github") / "copilot-instructions.md"] = prompt_body
+        for filename, content in _copilot_path_instructions():
+            outputs[Path(".github") / "instructions" / filename] = content
 
-    if mode == "agent":
-        outputs[Path(".github") / "agents" / "kiropen.agent.md"] = f"""\
----
-name: kiropen
-description: "KirOpen AI assistant. Systematic spec-driven development with clear requirements, thoughtful design, and sequenced implementation. Speaks like a dev, writes minimal code."
-tools: ["*"]
----
+        for name, content in [*_global_skill_templates(), *_copilot_vendor_skills()]:
+            outputs[Path(".agents") / "skills" / name / "SKILL.md"] = content
 
-{prompt_body}
-"""
-
-    if mode == "agent":
-        outputs[Path(".github") / "agents" / "spec-mode.agent.md"] = _copilot_spec_agent()
-
-    for filename, content in _copilot_path_instructions():
-        outputs[Path(".github") / "instructions" / filename] = content
-
-    for name, content in [*_global_skill_templates(), *_copilot_vendor_skills()]:
-        outputs[Path(".agents") / "skills" / name / "SKILL.md"] = content
-
-    for filename, content in _vendor_runtime_guides("copilot", variables):
-        outputs[Path(".kiropen") / filename] = content
+        for filename, content in _vendor_runtime_guides("copilot", variables):
+            outputs[Path(".kiropen") / filename] = content
 
     return outputs
 
@@ -960,7 +1024,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--platform",
-        choices=["win32", "darwin", "linux"],
+        choices=["windows", "macos", "linux", "win32", "darwin"],
         default=None,
     )
     parser.add_argument(
@@ -970,9 +1034,12 @@ def main() -> None:
     )
     parser.add_argument(
         "--mode",
-        choices=["agent", "default"],
+        choices=["agent", "agent-only", "default", "always", "always-on", "lite"],
         default="agent",
-        help="Whether KirOpen should stay a custom agent or replace default harness behavior.",
+        help=(
+            "Shared builder mode. For Copilot, default=Always-on, "
+            "lite=slim instructions plus agents, and agent=Agent-only."
+        ),
     )
     parser.add_argument(
         "--codex-trust",
@@ -997,7 +1064,11 @@ def main() -> None:
     else:
         args = parser.parse_args()
 
+    args.mode = normalize_mode(args.mode)
+    args.platform = normalize_platform_override(args.platform)
+
     targets: list[str] = args.targets if args.targets else list(ALL_TARGETS)
+    validate_mode_for_targets(targets, args.mode)
     out = Path(args.output_dir).resolve()
     codex_root_doc_filename = resolve_codex_root_doc(
         targets, args.mode, args.codex_root_doc

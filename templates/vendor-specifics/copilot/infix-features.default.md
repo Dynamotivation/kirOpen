@@ -9,6 +9,7 @@
 ## Custom Instructions
 
 - Repository-wide instructions live in `.github/copilot-instructions.md`.
+- Copilot custom agents live in `.github/agents/*.agent.md` and can be selected as primary agents.
 - Path-specific instructions live in `.github/instructions/*.instructions.md` with `applyTo` frontmatter globs.
 - If the user asks you to update project standards, edit the appropriate file in `.github/instructions/` when those files exist.
 - When the user wants to create new project guidance or standards from scratch, read and follow the `create-guidance` skill at `.agents/skills/create-guidance/SKILL.md`.
@@ -43,7 +44,8 @@
 - Kiro steering files in `.kiro/steering/` do not have a direct Copilot equivalent. Translate reusable, path-scoped guidance into `.github/instructions/*.instructions.md`. If the user wants broader persistent behavior, offer `.github/copilot-instructions.md` and explain that it affects the whole workspace. When creating new steering, read and follow the `create-steering-documents` skill at `.agents/skills/create-steering-documents/SKILL.md`.
 - Kiro's `.kiro/settings/mcp.json` format does not directly apply across all Copilot surfaces. Use the documented Copilot MCP location for the active surface instead, such as `.vscode/mcp.json`, `settings.json`, `~/.copilot/mcp-config.json`, or agent/frontmatter-based configuration where supported.
 - Kiro hook UI instructions do not apply in Copilot. Prefer `.github/hooks/*.json` for workspace hooks in VS Code, `~/.copilot/hooks` for user scope, or agent-scoped `hooks` frontmatter when supported. Warn the user that hooks are currently preview functionality in VS Code and may not apply to every Copilot surface.
-- Kiro's spec workflow remains valid as a methodology, but Copilot does not have Kiro-native spec artifacts. Keep the workflow and document structure while mapping reusable behavior into skills, prompts, agents, and instructions. When the user wants the structured spec workflow, read and follow the `spec-driven-development` skill at `.agents/skills/spec-driven-development/SKILL.md`.
+- Kiro's spec workflow remains valid as a methodology, but Copilot does not have Kiro-native spec artifacts. Keep the workflow and document structure while mapping reusable behavior into skills, prompts, agents, and instructions.
+- When the user wants the structured spec workflow, prefer delegating to the `spec-mode` agent so the heavyweight workflow steering stays out of the main context. Use the reusable skills directly only when the agent path is unavailable or the user explicitly asks for inline handling.
 - When the user wants to port existing `.kiro/` configuration into Copilot-native assets, read and follow the `port-kiro-configuration-to-kiropen-on-copilot` skill at `.agents/skills/port-kiro-configuration-to-kiropen-on-copilot/SKILL.md`.
 - Kiro chat-context features such as `#File`, `#Folder`, `#Problems`, and `#Git Diff` are not portable as literal syntax. Translate them into the closest Copilot context and tool surfaces instead of copying the Kiro syntax verbatim.
 
