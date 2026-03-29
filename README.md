@@ -63,6 +63,7 @@ If your system exposes Python as `python3`, use `python3` in the examples below.
   Use this when you want KirOpen to stay mostly opt-in. In this mode, the builder generates harness-specific agents, skills, prompts, and scoped guidance surfaces, but it does not try to replace the harness's default project-wide behavior unless that harness always needs a supporting file for activation.
 - `default`
   Use this when you want KirOpen to shape the harness's default behavior for the whole repository. In this mode, the builder also emits the harness's main default instruction file, such as `CODEX.md` for Codex or `.github/copilot-instructions.md` for Copilot.
+  If you are generating only for Codex, you can optionally use `AGENTS.md` instead via `--codex-root-doc agents`, but that can cause issues later if you switch AI harnesses.
 
 Practical difference:
 
@@ -91,6 +92,7 @@ Examples:
 python /path/to/kirOpen/assemble_instructions.py --output-dir . codex
 python /path/to/kirOpen/assemble_instructions.py --output-dir . copilot
 python /path/to/kirOpen/assemble_instructions.py --mode default --output-dir . codex
+python /path/to/kirOpen/assemble_instructions.py --mode default --codex-root-doc agents --output-dir . codex
 python /path/to/kirOpen/assemble_instructions.py --mode default --output-dir . copilot
 ```
 
@@ -131,6 +133,10 @@ If you built in `default` mode, also copy:
 
 - `review_codex/CODEX.md` -> `<repo>/CODEX.md`
 - `review_codex/.codex/config.toml` -> `<repo>/.codex/config.toml`
+
+If you built with `--codex-root-doc agents`, copy instead:
+
+- `review_codex/AGENTS.md` -> `<repo>/AGENTS.md`
 
 </details>
 
