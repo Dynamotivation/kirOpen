@@ -83,3 +83,8 @@ These are KirOpen product concepts, not universal agent primitives.
 ## Recommendation
 
 Keep this file as a maintainer-facing source document. If you later want runtime tool schemas in generated output, add harness-specific derived templates instead of appending this file directly.
+
+For harness expansion workflow and the current file-by-file maintenance map, also see:
+
+- [adding-a-harness.md](/d:/source/repos/kirOpen/development/adding-a-harness.md)
+- [harness-touchpoints.md](/d:/source/repos/kirOpen/development/harness-touchpoints.md)

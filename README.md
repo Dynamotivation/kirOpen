@@ -25,6 +25,11 @@ KirOpen translates Kiro concepts such as specs, steering, hooks, MCP, powers, vi
 - Similar model behavior through observed guidelines and guardrails
 - Conversion skill from Kiro's Steering, Hooks, MCP and Powers formats into each harness's native equivalents (if supported)
 
+## Deliberate Differences
+
+- Kiro may claim to possess an AI prompting guide skill, but this is omitted in KirOpen since different, non-Claude models respond differently to prompts.
+- The `create-steering-documents` skill is updated to create canonical `.kiro/steering/*.md` files plus wrapper files for each supported harness, instead of trying to copy Kiro steering files directly into each harness's native format. This preserves the original Kiro steering content as the source of truth avoids duplication.
+
 ## Supported Harnesses
 
 - Codex
