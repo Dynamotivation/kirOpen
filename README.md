@@ -77,6 +77,8 @@ Practical difference:
 > [!TIP]
 > If you run the script with no arguments, it starts in interactive mode.
 
+Prebuilding cannot be offered since for some harnesses you need to configure the harnesses on the users machine.
+
 ### Installing into empty Repositories
 
 If the target repo has no prior Kiro setup:
