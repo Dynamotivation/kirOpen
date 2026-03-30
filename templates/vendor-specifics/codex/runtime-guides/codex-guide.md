@@ -26,16 +26,15 @@ Symptom: Codex Plan mode is engaged even though you intended KirOpen Spec mode w
 Do this:
 1. Send: `Use Spec mode workflow, not Codex Plan mode for this request.`
 2. If needed, invoke directly: `@spec_mode Continue in spec mode.`
-3. Keep phase checkpoints explicit after handoff (`approve requirements`, `approve design`).
+3. After each phase, tell the agent what you want next — continue, revise, or skip ahead.
 
 ### 2) Spec Mode Auto Progression
 
 Symptom: assistant progresses requirements -> design -> tasks without waiting for approvals.
 
 Do this:
-1. Send: `Stop after requirements only. Wait for explicit approval before design.`
-2. Use deterministic progression commands (`approve requirements`, `approve design`).
-3. Use fast path only when desired: `approve requirements + design then auto tasks`.
+1. Send: `Stop after requirements only. Wait for my approval before moving to design.`
+2. After each phase, explicitly tell the agent to continue, revise, or generate the remaining phases together.
 
 ### 3) Spec Intent Not Routed As Expected
 
@@ -44,7 +43,6 @@ Symptom: spec request is handled inline when you expected specialist workflow ha
 Do this:
 1. Send: `@spec_mode Continue this in spec mode.`
 2. If still ambiguous, add: `Use requirements first, then wait for approval.`
-3. Keep a deterministic continuation phrase ready: `approve requirements + design then auto tasks` if you want the fast path.
 
 ### 4) Higher-Level Policy Overrides Template Behavior
 

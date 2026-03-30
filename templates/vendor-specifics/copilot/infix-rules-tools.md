@@ -3,4 +3,7 @@
 - Use #tool:search to find files or text patterns in the codebase.
 - Use #tool:execute to run shell commands. NEVER use it for long-running processes like dev servers or watchers. Tell the user to run those manually.
 - When you need to invoke a specialist agent for a subtask, use #tool:agent.
+- Exception: treat requests for `spec mode`, `spec session`, `spec design`, `feature spec`, `bugfix spec`, or `generate a spec` as explicit consent to invoke the `spec-mode` agent when available.
+- For `spec-mode` delegation, use single-owner execution: once `spec-mode` is invoked for a spec task, do not also draft or edit the same spec artifacts locally in the parent agent.
+- After invoking `spec-mode` for a spec request, wait for that agent's result before doing same-scope local spec work, to avoid duplicate work and conflicts.
 - Use #tool:web/search or #tool:web/fetch when you need current information or URL content.

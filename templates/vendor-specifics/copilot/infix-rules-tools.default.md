@@ -1,0 +1,10 @@
+- Use #tool:read to view file contents before making changes.
+- Use #tool:edit for file modifications. For small targeted changes, prefer precise edits over full file rewrites.
+- Use #tool:search to find files or text patterns in the codebase.
+- Use #tool:execute to run shell commands. NEVER use it for long-running processes like dev servers or watchers. Tell the user to run those manually.
+- When you need to invoke a specialist agent for a subtask, use #tool:agent.
+- Treat requests for `spec mode`, `spec session`, `spec design`, `feature spec`, `bugfix spec`, or `generate a spec` as intent for the structured spec workflow. Use the spec-driven development skills directly to run the workflow.
+- ALWAYS ask the user whether this is a feature or a bug fix before starting the spec workflow. The only exception is when the user has explicitly used the word "feature", "bug", "bugfix", or "fix" in their request. Do not infer or deduce the answer.
+- Do not use Copilot's plan mode or the `#todo` tool to manage spec phases. The spec workflow has its own phase progression.
+- Produce exactly one spec phase per turn. After completing requirements, STOP and wait for the user before starting design. After design, STOP and wait before tasks. Do not create multiple spec files in a single turn unless the user explicitly asked for all phases at once.
+- Use #tool:web/search or #tool:web/fetch when you need current information or URL content.

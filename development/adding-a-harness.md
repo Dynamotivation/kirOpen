@@ -33,10 +33,11 @@ Create or update `templates/vendor-specifics/<harness>/`.
 
 Typical template touchpoints:
 
-- `features.md`
-- `tool-rules.md`
-- `agents.md`
-- `parallel-hint.md`
+- `infix-features.md`
+- `infix-rules-tools.md`
+- `suffix-agents.md`
+- `infix-goal-parallel.md`
+- `infix-capabilities-exploration.md`
 - harness-specific agent frontmatter or templates if that harness supports agents
 - harness-specific prompts or skills when the harness needs dedicated migration or setup help
 - runtime guide files when the harness has quirks worth documenting
@@ -70,7 +71,7 @@ If only one of these is updated, maintainers lose track of the intended cross-ha
 Also review any harness-specific migration assets. Right now Codex and Copilot already have vendor-specific porting helpers:
 
 - [templates/vendor-specifics/codex/skills/port-kiro-configuration-to-kiropen-on-codex.SKILL.md](/d:/source/repos/kirOpen/templates/vendor-specifics/codex/skills/port-kiro-configuration-to-kiropen-on-codex.SKILL.md)
-- [templates/vendor-specifics/copilot/port-kiro-configuration-to-kiropen-on-copilot.prompt.md](/d:/source/repos/kirOpen/templates/vendor-specifics/copilot/port-kiro-configuration-to-kiropen-on-copilot.prompt.md)
+- [templates/vendor-specifics/copilot/skills/port-kiro-configuration-to-kiropen-on-copilot.SKILL.md](/d:/source/repos/kirOpen/templates/vendor-specifics/copilot/skills/port-kiro-configuration-to-kiropen-on-copilot.SKILL.md)
 
 If the new harness needs equivalent onboarding or migration help, add it here too.
 

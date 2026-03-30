@@ -1,3 +1,4 @@
+import re
 import tomllib
 import unittest
 from io import StringIO
@@ -273,8 +274,8 @@ class PromptIdentityTests(unittest.TestCase):
         )
 
 
-class SpecPhaseGateInfixTests(unittest.TestCase):
-    def test_spec_skill_contains_required_infix_markers(self) -> None:
+class SpecPhaseGateTests(unittest.TestCase):
+    def test_spec_skill_has_no_vendor_markers(self) -> None:
         skill_path = (
             Path(__file__).resolve().parent.parent
             / "templates"
@@ -283,46 +284,31 @@ class SpecPhaseGateInfixTests(unittest.TestCase):
             / "SKILL.md"
         )
         skill_text = skill_path.read_text(encoding="utf-8")
+        self.assertNotRegex(skill_text, r"\{\{[A-Z_]+?\}\}")
 
-        markers = [
-            "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_WHEN_TO_USE -->",
-            "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_PHASE_1 -->",
-            "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_PHASE_2 -->",
-            "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_PHASE_3 -->",
-            "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_WORKFLOW -->",
-            "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_LIGHTWEIGHT -->",
-        ]
-        for marker in markers:
-            self.assertIn(marker, skill_text)
-
-    def test_codex_spec_agent_includes_injected_phase_gates(self) -> None:
+    def test_codex_spec_agent_includes_phase_gate_steering(self) -> None:
         outputs = plan_outputs_for_targets(["codex"], "agent")
         spec_agent = outputs[Path(".codex") / "agents" / "spec_mode.toml"]
 
         self.assertIn("produce exactly one phase per turn by default", spec_agent)
-        self.assertIn("approve requirements", spec_agent)
-        self.assertIn("design then auto tasks", spec_agent)
-        self.assertIn("generate all phases now", spec_agent)
+        self.assertIn("stop and wait for the user to indicate what they want next", spec_agent)
+        self.assertIn("Do not use Codex plan mode", spec_agent)
         self.assertIn(
             "treat that as explicit consent to invoke this agent",
-            spec_agent,
-        )
-        self.assertIn(
-            "Do not treat planning behavior, plan UIs, or task-plan tools as user approval",
             spec_agent,
         )
         self.assertIn(
             "owns the delegated spec scope until completion",
             spec_agent,
         )
-        self.assertIn(
-            "after `wait_agent` returns this agent's result",
-            spec_agent,
-        )
-        self.assertNotIn(
-            "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_WHEN_TO_USE -->",
-            spec_agent,
-        )
+
+    def test_copilot_spec_agent_includes_phase_gate_steering(self) -> None:
+        outputs = plan_outputs_for_targets(["copilot"], "agent")
+        spec_agent = outputs[Path(".github") / "agents" / "spec-mode.agent.md"]
+
+        self.assertIn("produce exactly one phase per turn by default", spec_agent)
+        self.assertIn("stop and wait for the user to indicate what they want next", spec_agent)
+        self.assertIn("Do not use Copilot's plan mode", spec_agent)
 
 
 class PortSkillMismatchGuardTests(unittest.TestCase):
@@ -350,7 +336,8 @@ class PortSkillMismatchGuardTests(unittest.TestCase):
             / "templates"
             / "vendor-specifics"
             / "copilot"
-            / "port-kiro-configuration-to-kiropen-on-copilot.prompt.md"
+            / "skills"
+            / "port-kiro-configuration-to-kiropen-on-copilot.SKILL.md"
         )
         text = path.read_text(encoding="utf-8")
 
@@ -394,6 +381,36 @@ class RuntimeGuideDocsTests(unittest.TestCase):
     def test_copilot_target_does_not_emit_codex_runtime_guide(self) -> None:
         outputs = plan_outputs_for_targets(["copilot"], "agent")
         self.assertNotIn(Path(".kiropen") / "codex-guide.md", outputs)
+
+
+class UnfilledMarkerTests(unittest.TestCase):
+    """Every output file for every target × mode permutation must be free of
+    unfilled ``{{PLACEHOLDER}}`` markers.  The regex uses a non-greedy
+    quantifier so it catches each marker individually."""
+
+    _UNFILLED_MARKER = re.compile(r"\{\{[A-Z_]+?\}\}")
+
+    def _assert_no_markers(
+        self, outputs: dict[Path, str], label: str
+    ) -> None:
+        for path, content in outputs.items():
+            match = self._UNFILLED_MARKER.search(content)
+            self.assertIsNone(
+                match,
+                f"[{label}] {path} contains unfilled marker: {match.group() if match else ''}",
+            )
+
+    def test_no_unfilled_markers_in_any_permutation(self) -> None:
+        from assemble_instructions import ALL_TARGETS
+
+        modes = ["agent", "default"]
+        for target in ALL_TARGETS:
+            for mode in modes:
+                with self.subTest(target=target, mode=mode):
+                    outputs = plan_outputs_for_targets(
+                        [target], mode, platform_override="linux"
+                    )
+                    self._assert_no_markers(outputs, f"{target}/{mode}")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,14 @@
+- Use `shell_command` to run terminal commands. Prefer `rg` and `rg --files` for text and file search, and always set the working directory instead of relying on `cd`.
+- Use `apply_patch` for manual file edits. Do not emulate edits with shell redirection or ad hoc file-writing commands when a normal patch will do.
+- When several independent developer-tool calls can run without depending on each other, batch them with `multi_tool_use.parallel`.
+- Use `list_mcp_resources`, `list_mcp_resource_templates`, and `read_mcp_resource` when a configured MCP server can answer the question. Prefer MCP over web search for the same source material.
+- Use `spawn_agent` only when the user explicitly asks for delegation, sub-agents, or parallel agent work.
+- Treat requests for `spec mode`, `spec session`, `spec design`, `feature spec`, `bugfix spec`, or `generate a spec` as intent for the structured spec workflow. Use the spec-driven development skills directly to run the workflow.
+- ALWAYS ask the user whether this is a feature or a bug fix before starting the spec workflow. The only exception is when the user has explicitly used the word "feature", "bug", "bugfix", or "fix" in their request. Do not infer or deduce the answer.
+- Do not use Codex plan mode or task-plan tools to manage spec phases. The spec workflow has its own phase progression.
+- Produce exactly one spec phase per turn. After completing requirements, STOP and wait for the user before starting design. After design, STOP and wait before tasks. Do not create multiple spec files in a single turn unless the user explicitly asked for all phases at once.
+- After spawning an agent, use `send_input`, `wait_agent`, `resume_agent`, and `close_agent` only as needed.
+- Use `web.run` when the user asks for current information, direct source verification, or links that require browsing.
+- Use `view_image` only when the user provides a local image path and the image is not already attached in context.
+- Use `update_plan` for substantial multi-step work when keeping a visible plan helps.
+- Call tools through Codex's actual tool interfaces. Do not write fake XML, YAML, or markdown pseudo-tool calls in the user-facing response.

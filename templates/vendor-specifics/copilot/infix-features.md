@@ -1,5 +1,11 @@
 # Features
 
+## User Question Tools
+
+- In VS Code, use `vscode_askQuestions` to present structured questions to the user.
+- In Copilot CLI, use `ask_user` to present structured questions to the user.
+- Use whichever is available in the current surface. If neither is available, fall back to asking in the chat response.
+
 ## Custom Instructions
 
 - In agent mode, Copilot behavior is primarily carried by `.github/agents/*.agent.md`.
@@ -38,6 +44,13 @@
 - Kiro hook UI instructions do not apply in Copilot. Prefer `.github/hooks/*.json` for workspace hooks in VS Code, `~/.copilot/hooks` for user scope, or agent-scoped `hooks` frontmatter when supported. Warn the user that hooks are currently preview functionality in VS Code and may not apply to every Copilot surface.
 - Kiro's spec workflow remains valid as a methodology, but Copilot does not have Kiro-native spec artifacts. Keep the workflow and document structure while mapping reusable behavior into skills, prompts, agents, and instructions.
 - Kiro chat-context features such as `#File`, `#Folder`, `#Problems`, and `#Git Diff` are not portable as literal syntax. Translate them into the closest Copilot context and tool surfaces instead of copying the Kiro syntax verbatim.
+
+## Diagnostics
+
+- In VS Code, Copilot can access the Problems panel via `#problems` or `#read/problems`. Use this as the diagnostic tool when checking for compile, lint, type, and other semantic issues after editing files.
+- Prefer `#problems` over running lint or type-check commands in the terminal. It surfaces the same squiggles the developer sees in the editor without spawning a separate process.
+- On GitHub.com coding agent there is no live Problems panel. Instead, replicate diagnostic checks by running the project's lint and type-check commands (e.g. `npm run lint`, `tsc --noEmit`, `mypy .`) via `#tool:execute` and inspecting the output.
+- On Copilot CLI, use `#tool:execute` to run lint and type-check commands the same way.
 
 ## Internet Access
 

@@ -160,14 +160,15 @@ python assemble_instructions.py --output-dir review_copilot copilot
 In `agent` mode, review and copy:
 
 - `review_copilot/.github/agents/kiropen.agent.md` -> `<repo>/.github/agents/kiropen.agent.md`
-- `review_copilot/.github/agents/kiropen-spec.agent.md` -> `<repo>/.github/agents/kiropen-spec.agent.md`
+- `review_copilot/.github/agents/spec-mode.agent.md` -> `<repo>/.github/agents/spec-mode.agent.md`
 - `review_copilot/.github/instructions/*.instructions.md` -> `<repo>/.github/instructions/*.instructions.md`
 - `review_copilot/.agents/skills/*/SKILL.md` -> `<repo>/.agents/skills/*/SKILL.md`
-- `review_copilot/.github/prompts/port-kiro-configuration-to-kiropen-on-copilot.prompt.md` -> `<repo>/.github/prompts/port-kiro-configuration-to-kiropen-on-copilot.prompt.md`
 
 If you built in `default` mode, also copy:
 
 - `review_copilot/.github/copilot-instructions.md` -> `<repo>/.github/copilot-instructions.md`
+
+> **Known issue:** Copilot agent subagent depth is currently limited to 1, which means the `spec-mode` agent cannot spawn a discovery subagent during the spec workflow. Skills should be usable by agents per the [Copilot agent tools documentation](https://github.com/github/copilot-cli/issues/839), but nesting is reported broken ([related report](https://github.com/easingthemes/dx-aem-flow/issues/20)). Workaround: run codebase exploration in the parent agent before delegating to `spec-mode`, or use default mode where the main agent runs skills directly with full tool access.
 
 </details>
 

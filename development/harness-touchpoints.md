@@ -15,9 +15,9 @@ This file is the quick map of what usually needs touching when KirOpen grows to 
 | Area | Files | Why it matters |
 |------|-------|----------------|
 | Harness folder | `templates/vendor-specifics/<harness>/` | Main template surface for the harness |
-| Concept mapping | `templates/vendor-specifics/<harness>/features.md` | Explains how KirOpen concepts map into that harness |
-| Tool rules | `templates/vendor-specifics/<harness>/tool-rules.md` | Keeps tool behavior aligned with the real harness |
-| Agent support | `templates/vendor-specifics/<harness>/agents.md` and any agent-frontmatter templates | Needed when the harness supports custom or reusable agents |
+| Concept mapping | `templates/vendor-specifics/<harness>/infix-features.md` | Explains how KirOpen concepts map into that harness |
+| Tool rules | `templates/vendor-specifics/<harness>/infix-rules-tools.md` | Keeps tool behavior aligned with the real harness |
+| Agent support | `templates/vendor-specifics/<harness>/suffix-agents.md` and any agent-frontmatter templates | Needed when the harness supports custom or reusable agents |
 | Runtime quirks | `templates/vendor-specifics/<harness>/runtime-guides/*` when used | Captures harness-specific operational guidance |
 | Vendor migration helpers | vendor-specific skills or prompts under `templates/vendor-specifics/<harness>/` | Helps port Kiro-era concepts into the harness cleanly |
 
@@ -42,7 +42,7 @@ The steering skill is the clearest current example of a cross-harness concept th
 If the new harness also needs migration help, look for or add analogous files to:
 
 - [templates/vendor-specifics/codex/skills/port-kiro-configuration-to-kiropen-on-codex.SKILL.md](/d:/source/repos/kirOpen/templates/vendor-specifics/codex/skills/port-kiro-configuration-to-kiropen-on-codex.SKILL.md)
-- [templates/vendor-specifics/copilot/port-kiro-configuration-to-kiropen-on-copilot.prompt.md](/d:/source/repos/kirOpen/templates/vendor-specifics/copilot/port-kiro-configuration-to-kiropen-on-copilot.prompt.md)
+- [templates/vendor-specifics/copilot/skills/port-kiro-configuration-to-kiropen-on-copilot.SKILL.md](/d:/source/repos/kirOpen/templates/vendor-specifics/copilot/skills/port-kiro-configuration-to-kiropen-on-copilot.SKILL.md)
 
 ## README Surfaces
 

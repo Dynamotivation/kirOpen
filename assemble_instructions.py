@@ -47,14 +47,6 @@ SPEC_SKILLS = [
     "quality-assurance",
     "troubleshooting",
 ]
-SPEC_PHASE_GATE_MARKER_FILES = {
-    "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_WHEN_TO_USE -->": "when-to-use.md",
-    "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_PHASE_1 -->": "phase-1.md",
-    "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_PHASE_2 -->": "phase-2.md",
-    "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_PHASE_3 -->": "phase-3.md",
-    "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_WORKFLOW -->": "workflow.md",
-    "<!-- KIROOPEN-INFIX:SPEC_PHASE_GATES_LIGHTWEIGHT -->": "lightweight.md",
-}
 
 # ── Shared helpers ────────────────────────────────────────────────────────
 
@@ -88,7 +80,11 @@ def infill(text: str, variables: dict[str, str]) -> str:
     )
 
 
-def read_vendor_snippet(vendor_name: str, snippet_name: str) -> str:
+def read_vendor_snippet(vendor_name: str, snippet_name: str, mode: str | None = None) -> str:
+    if mode:
+        mode_path = VENDOR_DIR / vendor_name / f"{snippet_name}.{mode}.md"
+        if mode_path.exists():
+            return mode_path.read_text(encoding="utf-8").strip()
     path = VENDOR_DIR / vendor_name / f"{snippet_name}.md"
     if not path.exists():
         raise FileNotFoundError(
@@ -174,7 +170,7 @@ def build_codex_default_config() -> str:
     return read_assembly_template("codex", "config.toml")
 
 
-def build_vendor_tokens(vendor_name: str, variables: dict[str, str]) -> dict[str, str]:
+def build_vendor_tokens(vendor_name: str, variables: dict[str, str], mode: str | None = None) -> dict[str, str]:
     kiro_interop_primer = (
         read_shared_template("kiro-interop-primer.md")
         if vendor_name != "kiro"
@@ -182,15 +178,15 @@ def build_vendor_tokens(vendor_name: str, variables: dict[str, str]) -> dict[str
     )
     return {
         "KIRO_INTEROP_PRIMER": kiro_interop_primer,
-        "VENDOR_TOOL_RULES": read_vendor_snippet(vendor_name, "tool-rules"),
+        "VENDOR_TOOL_RULES": read_vendor_snippet(vendor_name, "infix-rules-tools", mode),
         "VENDOR_EXPLORATION_AGENT": read_vendor_snippet(
-            vendor_name, "exploration-agent"
+            vendor_name, "infix-capabilities-exploration", mode
         ),
         "VENDOR_PARALLEL_HINT": read_vendor_snippet(
-            vendor_name, "parallel-hint"
+            vendor_name, "infix-goal-parallel", mode
         ),
-        "VENDOR_FEATURES": read_vendor_snippet(vendor_name, "features"),
-        "VENDOR_AGENTS": read_vendor_snippet(vendor_name, "agents"),
+        "VENDOR_FEATURES": read_vendor_snippet(vendor_name, "infix-features", mode),
+        "VENDOR_AGENTS": read_vendor_snippet(vendor_name, "suffix-agents", mode),
         "PLATFORM_COMMANDS": read_platform_commands(variables["PLATFORM"]),
     }
 
@@ -227,7 +223,7 @@ def _vendor_runtime_guides(
 
 
 def assemble_prompt(
-    variables: dict[str, str], vendor_name: str
+    variables: dict[str, str], vendor_name: str, mode: str | None = None
 ) -> str:
     system_prompt = (TEMPLATES_DIR / "base-prompt.md").read_text(
         encoding="utf-8"
@@ -236,7 +232,7 @@ def assemble_prompt(
         system_prompt,
         {
             **variables,
-            **build_vendor_tokens(vendor_name, variables),
+            **build_vendor_tokens(vendor_name, variables, mode),
         },
     )
     system_prompt = infill(system_prompt, variables)
@@ -755,37 +751,8 @@ def interactive_args() -> argparse.Namespace:
 # ── Codex builder ─────────────────────────────────────────────────────────
 
 
-def _codex_spec_skill_infixes() -> dict[str, str]:
-    infixes: dict[str, str] = {}
-    for marker, filename in SPEC_PHASE_GATE_MARKER_FILES.items():
-        infixes[marker] = read_assembly_template(
-            "codex", "spec-phase-gates-infixes", filename
-        ).strip()
-    return infixes
-
-
-def _inject_skill_infixes(
-    skill_body: str, infixes: dict[str, str]
-) -> str:
-    rendered = skill_body
-    for marker, infix_text in infixes.items():
-        if marker not in rendered:
-            raise ValueError(f"Missing skill infix marker: {marker}")
-        rendered = rendered.replace(marker, infix_text)
-    return rendered
-
-
-def _codex_spec_skill_body() -> str:
-    combined = collect_skill_bodies(SPEC_SKILLS)
-    combined = _inject_skill_infixes(combined, _codex_spec_skill_infixes())
-    return render_assembly_template(
-        "codex",
-        "spec_skill_body_prefix.md",
-        replacements={"{{COMBINED_SKILLS}}": combined},
-    )
-
-
 def _codex_custom_agents() -> list[tuple[str, str]]:
+    combined = collect_skill_bodies(SPEC_SKILLS)
     return [
         (
             "spec_mode.toml",
@@ -793,7 +760,22 @@ def _codex_custom_agents() -> list[tuple[str, str]]:
 name = "spec_mode"
 description = "Spec-mode specialist for requirements, design, and task breakdown. When users ask for spec mode/spec design, this aligned workflow can be invoked directly."
 developer_instructions = """
-{_codex_spec_skill_body()}
+Use this when the user wants KirOpen's three-phase spec workflow inside Codex.
+
+Treat KirOpen specs as a methodology, not as a Codex-native file type. When the user wants reusable Codex guidance, prefer repo skills under `.agents/skills` or custom agents under `.codex/agents`.
+When the user asks for `spec mode` or `spec design`, treat that as explicit consent to invoke this agent because its description and specialization align directly with the requested workflow.
+When this agent is invoked, it owns the delegated spec scope until completion; parent-agent local work should resume on that same scope only after `wait_agent` returns this agent's result.
+
+## Phase-Gate Policy
+
+- ALWAYS ask the user whether this is a feature or a bug fix before starting the spec workflow. The only exception is when the user has explicitly used the word "feature", "bug", "bugfix", or "fix" in their request. Do not infer or deduce the answer.
+- In spec workflow requests, produce exactly one phase per turn by default.
+- Do not use Codex plan mode or task-plan tools to manage spec phases. The spec workflow has its own phase progression with explicit user approval gates.
+- Do not treat planning behavior, plan UIs, or task-plan tools as user approval to advance phases.
+- After completing each phase, stop and wait for the user to indicate what they want next. The user may ask to continue to the next phase, run multiple phases together, or revise the current phase. Interpret their intent from their response rather than expecting specific commands.
+- "Lightweight" means less detail per phase, not merged phases. Do not skip approval between phases unless the user explicitly asks for it.
+
+{combined}
 """
 ''',
         ),
@@ -843,7 +825,7 @@ def _copilot_spec_agent() -> str:
     return render_assembly_template(
         "copilot",
         "agents-frontmatter",
-        "kiropen-spec.agent.md",
+        "spec-mode.agent.md",
         replacements={"{{COMBINED_SKILLS}}": combined},
     )
 
@@ -855,15 +837,16 @@ def _copilot_path_instructions() -> list[tuple[str, str]]:
     return instructions
 
 
-def _copilot_prompts() -> list[tuple[str, str]]:
-    vendor_prompt = (
-        "port-kiro-configuration-to-kiropen-on-copilot.prompt.md"
-    )
+def _copilot_vendor_skills() -> list[tuple[str, str]]:
     return [
         (
-            vendor_prompt,
-            read_assembly_template("copilot", vendor_prompt),
-        )
+            "port-kiro-configuration-to-kiropen-on-copilot",
+            read_assembly_template(
+                "copilot",
+                "skills",
+                "port-kiro-configuration-to-kiropen-on-copilot.SKILL.md",
+            ),
+        ),
     ]
 
 
@@ -871,15 +854,16 @@ def plan_codex_outputs(
     variables: dict[str, str], mode: str, root_doc_filename: str
 ) -> dict[Path, str]:
     outputs: dict[Path, str] = {}
-    prompt_body = assemble_prompt(variables, "codex")
+    prompt_body = assemble_prompt(variables, "codex", mode)
 
     if mode == "default":
         outputs[Path(root_doc_filename)] = prompt_body
         if root_doc_filename == "CODEX.md":
             outputs[Path(".codex") / "config.toml"] = build_codex_default_config()
 
-    for filename, content in _codex_custom_agents():
-        outputs[Path(".codex") / "agents" / filename] = content
+    if mode == "agent":
+        for filename, content in _codex_custom_agents():
+            outputs[Path(".codex") / "agents" / filename] = content
 
     for name, content in [*_global_skill_templates(), *_codex_vendor_skills()]:
         outputs[Path(".agents") / "skills" / name / "SKILL.md"] = content
@@ -897,7 +881,7 @@ def plan_copilot_outputs(
     variables: dict[str, str], mode: str
 ) -> dict[Path, str]:
     outputs: dict[Path, str] = {}
-    prompt_body = assemble_prompt(variables, "copilot")
+    prompt_body = assemble_prompt(variables, "copilot", mode)
 
     if mode == "default":
         outputs[Path(".github") / "copilot-instructions.md"] = prompt_body
@@ -913,16 +897,14 @@ tools: ["*"]
 {prompt_body}
 """
 
-    outputs[Path(".github") / "agents" / "kiropen-spec.agent.md"] = _copilot_spec_agent()
+    if mode == "agent":
+        outputs[Path(".github") / "agents" / "spec-mode.agent.md"] = _copilot_spec_agent()
 
     for filename, content in _copilot_path_instructions():
         outputs[Path(".github") / "instructions" / filename] = content
 
-    for name, content in _global_skill_templates():
+    for name, content in [*_global_skill_templates(), *_copilot_vendor_skills()]:
         outputs[Path(".agents") / "skills" / name / "SKILL.md"] = content
-
-    for filename, content in _copilot_prompts():
-        outputs[Path(".github") / "prompts" / filename] = content
 
     for filename, content in _vendor_runtime_guides("copilot", variables):
         outputs[Path(".kiropen") / filename] = content
