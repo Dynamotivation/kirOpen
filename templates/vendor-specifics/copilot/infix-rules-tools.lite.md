@@ -5,5 +5,11 @@
 - When you need to invoke a specialist agent for a subtask, use #tool:agent.
 - Treat requests for `spec mode`, `spec session`, `spec design`, `feature spec`, `bugfix spec`, or `generate a spec` as explicit consent to invoke the `spec-mode` agent when available.
 - Delegate structured spec workflow requests to `spec-mode` instead of loading the full workflow inline in the main context.
-- Do not use Copilot's plan mode or the `#todo` tool to manage spec phases. The spec workflow has its own phase progression.
+- Do not use Copilot's plan mode to manage spec phases. Keep `spec-mode` as the owner of the actual workflow.
+- If the current Copilot surface exposes a todo-capable tool such as `#todo`, use it only to mirror the active spec phase.
+- For feature requirements-first sessions, track `Draft requirements` -> `Ask user for feedback` -> `Draft design` -> `Draft tasks`.
+- For technical design-first sessions, track `Draft design` -> `Ask user for feedback` -> `Draft requirements` -> `Draft tasks`.
+- If a todo-capable tool is available, keep exactly one phase todo active at a time, and do not advance phases until the user has given feedback or explicit approval through the `spec-mode` flow.
+- For task execution from `.kiro/specs/.../tasks.md`, if a todo-capable tool is available, create one todo per task, keep the current task active, and mark completed work in both the todo list and `tasks.md`.
+- Todo state mirrors progress, but tool calls, plan UI changes, todo completion, and internal task lists do not count as user approval by themselves.
 - Use #tool:web/search or #tool:web/fetch when you need current information or URL content.

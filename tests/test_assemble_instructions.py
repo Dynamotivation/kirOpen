@@ -7,21 +7,25 @@ from unittest.mock import patch
 
 from assemble_instructions import (
     BUILDER_VERSION,
-    _prompt_platform,
+    _select_mode_interactively,
     assemble_prompt,
     build_codex_default_choice_prompt,
     codex_project_trust_level,
+    effective_mode_for_target,
+    fallback_targets_for_mode,
     get_variables,
+    interactive_args,
+    mode_fallback_warning,
     maybe_handle_codex_trust,
     normalize_codex_default_choice,
     normalize_mode,
-    normalize_platform_override,
     normalize_repo_path_for_codex,
     _prompt_mode,
     _prompt_targets,
     plan_outputs_for_targets,
     resolve_codex_root_doc,
     upsert_codex_project_trust,
+    supported_modes_for_targets,
     validate_mode_for_targets,
 )
 
@@ -184,6 +188,11 @@ class CodexRootDocTests(unittest.TestCase):
             selection = _prompt_mode(["copilot"])
         self.assertEqual(selection, "lite")
 
+    def test_mixed_prompt_mode_accepts_lite(self) -> None:
+        with patch("builtins.input", side_effect=["lite"]):
+            selection = _prompt_mode(["codex", "copilot"])
+        self.assertEqual(selection, "lite")
+
     def test_prompt_targets_retries_after_invalid_choice(self) -> None:
         with (
             patch("builtins.input", side_effect=["wat", "codex"]),
@@ -255,20 +264,89 @@ class CodexRootDocTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             resolve_codex_root_doc(["codex", "copilot"], "default", "agents")
 
-    def test_prompt_platform_uses_friendly_names(self) -> None:
-        with patch("builtins.input", side_effect=["windows"]):
-            selection = _prompt_platform()
-        self.assertEqual(selection, "win32")
-
-    def test_normalizers_support_always_and_friendly_platforms(self) -> None:
+    def test_normalizers_support_always_aliases(self) -> None:
         self.assertEqual(normalize_mode("always"), "default")
         self.assertEqual(normalize_mode("always-on"), "default")
         self.assertEqual(normalize_mode("agent-only"), "agent")
-        self.assertEqual(normalize_platform_override("macos"), "darwin")
 
     def test_lite_mode_is_rejected_for_non_copilot_targets(self) -> None:
         with self.assertRaises(SystemExit):
             validate_mode_for_targets(["codex"], "lite")
+
+    def test_lite_mode_is_allowed_for_mixed_targets(self) -> None:
+        validate_mode_for_targets(["codex", "copilot"], "lite")
+
+    def test_supported_modes_for_targets_uses_union_of_capabilities(self) -> None:
+        self.assertEqual(supported_modes_for_targets(["codex"]), ["default", "agent"])
+        self.assertEqual(
+            supported_modes_for_targets(["codex", "copilot"]),
+            ["default", "lite", "agent"],
+        )
+
+    def test_mode_fallback_warning_names_unsupported_harnesses(self) -> None:
+        self.assertEqual(
+            fallback_targets_for_mode(["codex", "copilot"], "lite"),
+            ["codex"],
+        )
+        self.assertEqual(
+            mode_fallback_warning(["codex", "copilot"], "lite"),
+            "Warning: codex will fall back to always-on mode.",
+        )
+        self.assertIsNone(mode_fallback_warning(["copilot"], "lite"))
+
+    def test_effective_mode_for_target_falls_back_to_default(self) -> None:
+        self.assertEqual(effective_mode_for_target("codex", "lite"), "default")
+        self.assertEqual(effective_mode_for_target("copilot", "lite"), "lite")
+
+    def test_plan_outputs_falls_back_to_default_for_unsupported_targets(self) -> None:
+        outputs = plan_outputs_for_targets(["codex", "copilot"], "lite")
+
+        self.assertIn(Path("CODEX.md"), outputs)
+        self.assertIn(Path(".codex") / "config.toml", outputs)
+        self.assertIn(Path(".github") / "copilot-instructions.md", outputs)
+
+    def test_interactive_args_uses_plain_prompts_without_tty(self) -> None:
+        with (
+            patch("sys.stdin.isatty", return_value=False),
+            patch("sys.stdout.isatty", return_value=False),
+            patch("assemble_instructions._prompt_targets", return_value=["copilot"]),
+            patch("assemble_instructions._prompt_mode", return_value="lite"),
+            patch("assemble_instructions._prompt_with_default", return_value="."),
+            patch("sys.stdout", new_callable=StringIO),
+        ):
+            args = interactive_args()
+
+        self.assertEqual(args.targets, ["copilot"])
+        self.assertEqual(args.mode, "lite")
+        self.assertEqual(args.output_dir, ".")
+
+    def test_interactive_mode_selector_uses_up_and_down(self) -> None:
+        keys = iter(["down", "enter"])
+
+        with patch("assemble_instructions._render_mode_selector"):
+            selection = _select_mode_interactively(
+                ["codex", "copilot"],
+                read_key=lambda: next(keys),
+            )
+
+        self.assertEqual(selection, "lite")
+
+    def test_interactive_mode_selector_starts_on_always_on(self) -> None:
+        rendered_modes: list[str] = []
+
+        def record_render(
+            targets: list[str], available_modes: list[str], selected_mode: str
+        ) -> None:
+            rendered_modes.append(selected_mode)
+
+        with patch("assemble_instructions._render_mode_selector", side_effect=record_render):
+            selection = _select_mode_interactively(
+                ["codex", "copilot"],
+                read_key=lambda: "enter",
+            )
+
+        self.assertEqual(rendered_modes[0], "default")
+        self.assertEqual(selection, "default")
 
 
 class PromptIdentityTests(unittest.TestCase):
@@ -278,12 +356,12 @@ class PromptIdentityTests(unittest.TestCase):
         )
 
         for vendor in ("codex", "copilot"):
-            variables = get_variables(vendor, platform_override="win32")
+            variables = get_variables(vendor)
             prompt = assemble_prompt(variables, vendor)
             self.assertIn(expected_identity, prompt)
 
     def test_codex_prompt_treats_spec_intent_as_explicit_spec_mode_consent(self) -> None:
-        variables = get_variables("codex", platform_override="win32")
+        variables = get_variables("codex")
         prompt = assemble_prompt(variables, "codex")
 
         self.assertIn(
@@ -292,7 +370,7 @@ class PromptIdentityTests(unittest.TestCase):
         )
 
     def test_codex_prompt_requires_wait_agent_after_spec_mode_delegation(self) -> None:
-        variables = get_variables("codex", platform_override="win32")
+        variables = get_variables("codex")
         prompt = assemble_prompt(variables, "codex")
 
         self.assertIn(
@@ -339,7 +417,10 @@ class SpecPhaseGateTests(unittest.TestCase):
 
         self.assertIn("produce exactly one phase per turn by default", spec_agent)
         self.assertIn("stop and wait for the user to indicate what they want next", spec_agent)
-        self.assertIn("Do not use Copilot's plan mode", spec_agent)
+        self.assertIn("Do not use Copilot's plan mode to manage spec phases", spec_agent)
+        self.assertIn("If the current Copilot surface exposes a todo-capable tool such as `#todo`", spec_agent)
+        self.assertIn("`Draft requirements`, `Ask user for feedback`, `Draft design`, `Draft tasks`", spec_agent)
+        self.assertIn("mark completed work in both the todo list and `tasks.md`", spec_agent)
 
 
 class CopilotModeOutputTests(unittest.TestCase):
@@ -347,8 +428,9 @@ class CopilotModeOutputTests(unittest.TestCase):
         outputs = plan_outputs_for_targets(["copilot"], "default")
 
         self.assertIn(Path(".github") / "copilot-instructions.md", outputs)
-        self.assertIn(Path(".github") / "agents" / "kiropen.agent.md", outputs)
-        self.assertIn(Path(".github") / "agents" / "spec-mode.agent.md", outputs)
+        self.assertFalse(
+            any(path.parts[:2] == (".github", "agents") for path in outputs)
+        )
         self.assertIn(
             Path(".github") / "instructions" / "api.instructions.md",
             outputs,
@@ -357,7 +439,17 @@ class CopilotModeOutputTests(unittest.TestCase):
             Path(".agents") / "skills" / "spec-driven-development" / "SKILL.md",
             outputs,
         )
-        self.assertIn(Path(".kiropen") / "copilot-guide.md", outputs)
+        self.assertIn(Path(".kiropen") / "copilot-user-guide.md", outputs)
+
+    def test_copilot_default_instructions_do_not_require_generated_agents(self) -> None:
+        outputs = plan_outputs_for_targets(["copilot"], "default")
+        prompt = outputs[Path(".github") / "copilot-instructions.md"]
+
+        self.assertIn("do not assume a generated Copilot custom agent is available", prompt)
+        self.assertNotIn("prefer delegating to the `spec-mode` agent", prompt)
+        self.assertIn("Do not use Copilot's plan mode to manage spec phases", prompt)
+        self.assertIn("If the current Copilot surface exposes a todo-capable tool such as `#todo`", prompt)
+        self.assertIn("`Draft requirements` -> `Ask user for feedback` -> `Draft design` -> `Draft tasks`", prompt)
 
     def test_copilot_lite_emits_instruction_and_agents_only(self) -> None:
         outputs = plan_outputs_for_targets(["copilot"], "lite")
@@ -371,7 +463,7 @@ class CopilotModeOutputTests(unittest.TestCase):
         self.assertFalse(
             any(path.parts[:2] == (".agents", "skills") for path in outputs)
         )
-        self.assertNotIn(Path(".kiropen") / "copilot-guide.md", outputs)
+        self.assertNotIn(Path(".kiropen") / "copilot-user-guide.md", outputs)
 
     def test_copilot_agent_mode_emits_agents_only(self) -> None:
         outputs = plan_outputs_for_targets(["copilot"], "agent")
@@ -385,7 +477,7 @@ class CopilotModeOutputTests(unittest.TestCase):
         self.assertFalse(
             any(path.parts[:2] == (".agents", "skills") for path in outputs)
         )
-        self.assertNotIn(Path(".kiropen") / "copilot-guide.md", outputs)
+        self.assertNotIn(Path(".kiropen") / "copilot-user-guide.md", outputs)
 
 
 class PortSkillMismatchGuardTests(unittest.TestCase):
@@ -445,7 +537,7 @@ class OmittedSkillsTests(unittest.TestCase):
 class RuntimeGuideDocsTests(unittest.TestCase):
     def test_codex_guide_includes_builder_version_and_required_quirks(self) -> None:
         outputs = plan_outputs_for_targets(["codex"], "agent")
-        text = outputs[Path(".kiropen") / "codex-guide.md"]
+        text = outputs[Path(".kiropen") / "codex-user-guide.md"]
 
         self.assertIn(f"Builder version: `{BUILDER_VERSION}`", text)
         self.assertIn("## Mapping Table", text)
@@ -457,7 +549,7 @@ class RuntimeGuideDocsTests(unittest.TestCase):
 
     def test_copilot_target_does_not_emit_codex_runtime_guide(self) -> None:
         outputs = plan_outputs_for_targets(["copilot"], "agent")
-        self.assertNotIn(Path(".kiropen") / "codex-guide.md", outputs)
+        self.assertNotIn(Path(".kiropen") / "codex-user-guide.md", outputs)
 
 
 class UnfilledMarkerTests(unittest.TestCase):
@@ -486,7 +578,7 @@ class UnfilledMarkerTests(unittest.TestCase):
             for mode in modes:
                 with self.subTest(target=target, mode=mode):
                     outputs = plan_outputs_for_targets(
-                        [target], mode, platform_override="linux"
+                        [target], mode
                     )
                     self._assert_no_markers(outputs, f"{target}/{mode}")
 

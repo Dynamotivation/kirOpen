@@ -8,10 +8,10 @@ Supported targets:
 Modes:
   agent   - keep KirOpen as a custom agent profile
   default - emit KirOpen into the harness's default-behavior file instead
-  lite    - Copilot-only slim default instructions + agent files
+  lite    - slim Copilot default instructions + agent files; unsupported harnesses fall back to default
 
 Usage:
-  python assemble_instructions.py [--platform windows|macos|linux] [--output-dir .] [--mode agent|default|lite|always-on|agent-only] [targets ...]
+  python assemble_instructions.py [--output-dir .] [--mode agent|default|lite|always-on|agent-only] [targets ...]
 
 If no targets are given, all targets are generated.
 """
@@ -22,30 +22,26 @@ import argparse
 import os
 import platform as plat
 import re
+import select
 import sys
 import tomllib
 from datetime import datetime
 from pathlib import Path
+from typing import Callable
 
 REPO_ROOT = Path(__file__).resolve().parent
 TEMPLATES_DIR = REPO_ROOT / "templates"
-PLATFORM_DIR = TEMPLATES_DIR / "platform-specifics"
 VENDOR_DIR = TEMPLATES_DIR / "vendor-specifics"
 SKILLS_DIR = TEMPLATES_DIR / "skills"
 PROMPTS_DIR = TEMPLATES_DIR / "prompts"
 STEERING_DIR = TEMPLATES_DIR / "steering"
 
 ALL_TARGETS = ["codex", "copilot"]
+ANSI_GREEN = "\033[32m"
 ANSI_ORANGE = "\033[38;5;208m"
+ANSI_YELLOW = "\033[33m"
 ANSI_RESET = "\033[0m"
 BUILDER_VERSION = "0.1.0"
-PLATFORM_ALIASES = {
-    "windows": "win32",
-    "win32": "win32",
-    "macos": "darwin",
-    "darwin": "darwin",
-    "linux": "linux",
-}
 MODE_ALIASES = {
     "agent": "agent",
     "agent-only": "agent",
@@ -53,6 +49,21 @@ MODE_ALIASES = {
     "always": "default",
     "always-on": "default",
     "lite": "lite",
+}
+HARNESS_SUPPORTED_MODES = {
+    "codex": {"default", "agent"},
+    "copilot": {"default", "lite", "agent"},
+}
+MODE_DISPLAY_ORDER = ["default", "lite", "agent"]
+MODE_LABELS = {
+    "default": "Always-on",
+    "lite": "Lite",
+    "agent": "Agent-only",
+}
+MODE_DESCRIPTIONS = {
+    "default": "Always-on: Primary Copilot profile today. Keep the full workflow in copilot-instructions.md.",
+    "lite": "Lite: Keep the main instructions slim and route spec work into spec-mode.",
+    "agent": "Agent-only: Only emit the Copilot agents for explicit primary-agent use.",
 }
 
 SPEC_SKILLS = [
@@ -68,20 +79,16 @@ SPEC_SKILLS = [
 
 
 def get_variables(
-    target: str, platform_override: str | None = None
+    target: str
 ) -> dict[str, str]:
-    platform_name = platform_override or {
+    platform_name = {
         "Windows": "win32",
         "Darwin": "darwin",
         "Linux": "linux",
     }.get(plat.system(), "linux")
-    os_map = {"win32": "Windows", "darwin": "macOS", "linux": "Linux"}
-    shell_map = {"win32": "PowerShell", "darwin": "zsh", "linux": "bash"}
     now = datetime.now()
     return {
         "PLATFORM": platform_name,
-        "OS_NAME": os_map.get(platform_name, "Linux"),
-        "SHELL": shell_map.get(platform_name, "bash"),
         "CURRENT_DATE": now.strftime("%B %d, %Y"),
         "DAY_OF_WEEK": now.strftime("%A"),
         "MACHINE_ID": "dynamic-at-runtime",
@@ -113,11 +120,6 @@ def read_shared_template(filename: str) -> str:
     path = TEMPLATES_DIR / filename
     if not path.exists():
         raise FileNotFoundError(f"Missing shared template: {path}")
-    return path.read_text(encoding="utf-8").strip()
-
-
-def read_platform_commands(platform_name: str) -> str:
-    path = PLATFORM_DIR / f"{platform_name}.md"
     return path.read_text(encoding="utf-8").strip()
 
 
@@ -203,7 +205,6 @@ def build_vendor_tokens(vendor_name: str, variables: dict[str, str], mode: str |
         ),
         "VENDOR_FEATURES": read_vendor_snippet(vendor_name, "infix-features", mode),
         "VENDOR_AGENTS": read_vendor_snippet(vendor_name, "suffix-agents", mode),
-        "PLATFORM_COMMANDS": read_platform_commands(variables["PLATFORM"]),
     }
 
 
@@ -497,15 +498,58 @@ def write_codex_project_trust(config_path: Path, repo_path: Path) -> tuple[bool,
 
 
 def _print_orange(text: str) -> None:
+    print(_color_text(text, ANSI_ORANGE))
+
+
+def _color_text(text: str, color: str) -> str:
     if sys.stdout.isatty():
-        print(f"{ANSI_ORANGE}{text}{ANSI_RESET}")
-        return
-    print(text)
+        return f"{color}{text}{ANSI_RESET}"
+    return text
+
+
+def supported_modes_for_targets(targets: list[str]) -> list[str]:
+    supported: set[str] = set()
+    for target in targets:
+        supported.update(HARNESS_SUPPORTED_MODES.get(target, set()))
+    return [mode for mode in MODE_DISPLAY_ORDER if mode in supported]
+
+
+def fallback_targets_for_mode(targets: list[str], mode: str) -> list[str]:
+    return [
+        target
+        for target in targets
+        if mode not in HARNESS_SUPPORTED_MODES.get(target, set())
+    ]
+
+
+def effective_mode_for_target(target: str, requested_mode: str) -> str:
+    if requested_mode in HARNESS_SUPPORTED_MODES.get(target, set()):
+        return requested_mode
+    return "default"
+
+
+def _human_join(values: list[str]) -> str:
+    if not values:
+        return ""
+    if len(values) == 1:
+        return values[0]
+    if len(values) == 2:
+        return f"{values[0]} and {values[1]}"
+    return f"{', '.join(values[:-1])}, and {values[-1]}"
+
+
+def mode_fallback_warning(targets: list[str], mode: str) -> str | None:
+    fallback_targets = fallback_targets_for_mode(targets, mode)
+    if not fallback_targets:
+        return None
+    harnesses = _human_join(fallback_targets)
+    return f"Warning: {harnesses} will fall back to always-on mode."
+
 
 def resolve_codex_root_doc(
     targets: list[str], mode: str, codex_root_doc: str
 ) -> str:
-    if mode != "default":
+    if effective_mode_for_target("codex", mode) != "default":
         return "CODEX.md"
 
     if codex_root_doc == "agents":
@@ -608,7 +652,10 @@ def maybe_handle_codex_trust(
     codex_trust: str,
     codex_root_doc_filename: str,
 ) -> None:
-    if mode != "default" or "codex" not in targets:
+    if "codex" not in targets:
+        return
+
+    if effective_mode_for_target("codex", mode) != "default":
         return
 
     if codex_root_doc_filename != "CODEX.md":
@@ -690,12 +737,11 @@ def find_conflicting_outputs(
 def plan_outputs_for_targets(
     targets: list[str],
     mode: str,
-    platform_override: str | None = None,
     codex_root_doc: str = "auto",
 ) -> dict[Path, str]:
     planned: dict[Path, str] = {}
     for target in targets:
-        variables = get_variables(target, platform_override)
+        variables = get_variables(target)
         planned.update(
             plan_target_outputs(target, variables, mode, codex_root_doc, targets)
         )
@@ -728,6 +774,10 @@ def _prompt_targets() -> list[str]:
 
 
 def _prompt_mode(targets: list[str] | None = None) -> str:
+    available_modes = supported_modes_for_targets(targets or list(ALL_TARGETS))
+    prompt_labels = ", ".join(MODE_LABELS[mode].lower() for mode in available_modes)
+    default_mode = "agent" if "agent" in available_modes else available_modes[0]
+
     if targets == ["copilot"]:
         while True:
             mode = normalize_mode(
@@ -745,41 +795,206 @@ def _prompt_mode(targets: list[str] | None = None) -> str:
     while True:
         mode = normalize_mode(
             _prompt_with_default(
-                "Do you want KirOpen to always be on or make it an agent? (always/agent)",
-                "agent",
+                f"Mode ({prompt_labels})",
+                MODE_LABELS[default_mode].lower(),
             ).lower()
         )
-        if mode in {"agent", "default"}:
+        if mode in available_modes:
             return mode
-        print("Invalid mode for interactive mode. Choose 'agent' or 'always'.")
-
-
-def _prompt_platform() -> str | None:
-    while True:
-        platform_value = _prompt_with_default(
-            "Platform override (auto, windows, macos, linux)", "auto"
-        ).lower()
-        if platform_value == "auto":
-            return None
-        mapped = PLATFORM_ALIASES.get(platform_value)
-        if mapped:
-            return mapped
         print(
-            "Invalid platform for interactive mode. Choose 'auto', 'windows', 'macos', or 'linux'."
+            "Invalid mode for interactive mode. "
+            f"Choose from: {', '.join(MODE_LABELS[mode].lower() for mode in available_modes)}."
         )
+
+
+def _read_key() -> str:
+    if os.name == "nt":
+        import msvcrt
+
+        key = msvcrt.getwch()
+        if key == "\x03":
+            raise KeyboardInterrupt
+        if key in {"\x00", "\xe0"}:
+            return {
+                "H": "up",
+                "P": "down",
+                "K": "left",
+                "M": "right",
+            }.get(msvcrt.getwch(), "unknown")
+        if key in {"\r", "\n"}:
+            return "enter"
+        if key == " ":
+            return "space"
+        if key == "\x1b":
+            return "escape"
+        return key.lower()
+
+    import termios
+    import tty
+
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        key = sys.stdin.read(1)
+        if key == "\x03":
+            raise KeyboardInterrupt
+        if key in {"\r", "\n"}:
+            return "enter"
+        if key == " ":
+            return "space"
+        if key == "\x1b":
+            if not select.select([sys.stdin], [], [], 0.05)[0]:
+                return "escape"
+            second = sys.stdin.read(1)
+            if second != "[":
+                return "escape"
+            if not select.select([sys.stdin], [], [], 0.05)[0]:
+                return "escape"
+            third = sys.stdin.read(1)
+            return {
+                "A": "up",
+                "B": "down",
+                "C": "right",
+                "D": "left",
+            }.get(third, "escape")
+        return key.lower()
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+
+def _keyboard_ui_available() -> bool:
+    return sys.stdin.isatty() and sys.stdout.isatty()
+
+
+def _clear_interactive_screen() -> None:
+    if not sys.stdout.isatty():
+        return
+    sys.stdout.write("\033[2J\033[H")
+    sys.stdout.flush()
+
+
+def _print_interactive_header() -> None:
+    print(_color_text("Starting...", ANSI_GREEN))
+    print("You can rerun this script again to configure another batch of agents")
+    print()
+
+
+def _render_interactive_screen(lines: list[str]) -> None:
+    _clear_interactive_screen()
+    _print_interactive_header()
+    for line in lines:
+        print(line)
+
+
+def _render_harness_selector(
+    active_index: int, selected_targets: set[str], message: str | None = None
+) -> None:
+    lines = [
+        "Choose the harnesses to configure.",
+        "Use up/down to move, space to toggle, and Enter to confirm.",
+        "",
+    ]
+    for index, target in enumerate(ALL_TARGETS):
+        cursor = ">" if index == active_index else " "
+        checkbox = "[x]" if target in selected_targets else "[ ]"
+        lines.append(f"{cursor} {checkbox} {target}")
+    if message:
+        lines.extend(["", message])
+    _render_interactive_screen(lines)
+
+
+def _select_targets_interactively(
+    read_key: Callable[[], str] = _read_key
+) -> list[str]:
+    active_index = 0
+    selected_targets: set[str] = set()
+    message: str | None = None
+    while True:
+        _render_harness_selector(active_index, selected_targets, message)
+        message = None
+        key = read_key()
+        if key == "up":
+            active_index = (active_index - 1) % len(ALL_TARGETS)
+            continue
+        if key == "down":
+            active_index = (active_index + 1) % len(ALL_TARGETS)
+            continue
+        if key == "space":
+            target = ALL_TARGETS[active_index]
+            if target in selected_targets:
+                selected_targets.remove(target)
+            else:
+                selected_targets.add(target)
+            continue
+        if key == "enter":
+            if selected_targets:
+                return [target for target in ALL_TARGETS if target in selected_targets]
+            message = "Select at least one harness before continuing."
+            continue
+        if key in {"escape", "q"}:
+            raise KeyboardInterrupt
+
+
+def _render_mode_selector(
+    targets: list[str], available_modes: list[str], selected_mode: str
+) -> None:
+    lines = [
+        f"Harnesses: {', '.join(targets)}",
+        "Use up/down to choose a mode, then press Enter.",
+        "",
+    ]
+    for mode in MODE_DISPLAY_ORDER:
+        prefix = ">" if mode == selected_mode else " "
+        suffix = ""
+        if mode not in available_modes:
+            suffix = " (unavailable for the selected harnesses)"
+        lines.append(f"{prefix} {MODE_DESCRIPTIONS[mode]}{suffix}")
+
+    warning = mode_fallback_warning(targets, selected_mode)
+    if warning:
+        lines.extend(["", _color_text(warning, ANSI_YELLOW)])
+
+    _render_interactive_screen(lines)
+
+
+def _select_mode_interactively(
+    targets: list[str], read_key: Callable[[], str] = _read_key
+) -> str:
+    available_modes = supported_modes_for_targets(targets)
+    selected_mode = "default"
+    current_index = available_modes.index(selected_mode)
+
+    while True:
+        selected_mode = available_modes[current_index]
+        _render_mode_selector(targets, available_modes, selected_mode)
+        key = read_key()
+        if key == "up":
+            current_index = (current_index - 1) % len(available_modes)
+            continue
+        if key == "down":
+            current_index = (current_index + 1) % len(available_modes)
+            continue
+        if key == "enter":
+            return selected_mode
+        if key in {"escape", "q"}:
+            raise KeyboardInterrupt
 
 
 def interactive_args() -> argparse.Namespace:
-    print("Starting interactive mode, press CTRL+C to cancel.")
-    targets = _prompt_targets()
-    mode = _prompt_mode(targets)
+    if _keyboard_ui_available():
+        targets = _select_targets_interactively()
+        mode = _select_mode_interactively(targets)
+        print()
+    else:
+        print("Starting interactive mode, press CTRL+C to cancel.")
+        targets = _prompt_targets()
+        mode = _prompt_mode(targets)
     output_dir = _prompt_with_default("Repo directory to install to", ".")
-    platform_value = _prompt_platform()
     return argparse.Namespace(
         targets=targets,
         mode=mode,
         output_dir=output_dir,
-        platform=platform_value,
         codex_trust="prompt",
         codex_root_doc="auto",
     )
@@ -789,16 +1004,10 @@ def normalize_mode(mode: str) -> str:
     return MODE_ALIASES.get(mode.lower(), mode)
 
 
-def normalize_platform_override(platform_value: str | None) -> str | None:
-    if platform_value is None:
-        return None
-    return PLATFORM_ALIASES.get(platform_value.lower(), platform_value)
-
-
 def validate_mode_for_targets(targets: list[str], mode: str) -> None:
-    if mode == "lite" and targets != ["copilot"]:
+    if mode not in supported_modes_for_targets(targets):
         raise SystemExit(
-            "Lite mode is only supported when generating GitHub Copilot alone."
+            f"{MODE_LABELS[mode]} mode is not supported by the selected harnesses."
         )
 
 
@@ -948,12 +1157,13 @@ def plan_copilot_outputs(
     variables: dict[str, str], mode: str
 ) -> dict[Path, str]:
     outputs: dict[Path, str] = {}
-    outputs[Path(".github") / "agents" / "kiropen.agent.md"] = (
-        _copilot_kiropen_agent(variables)
-    )
-    outputs[Path(".github") / "agents" / "spec-mode.agent.md"] = (
-        _copilot_spec_agent()
-    )
+    if mode in {"lite", "agent"}:
+        outputs[Path(".github") / "agents" / "kiropen.agent.md"] = (
+            _copilot_kiropen_agent(variables)
+        )
+        outputs[Path(".github") / "agents" / "spec-mode.agent.md"] = (
+            _copilot_spec_agent()
+        )
 
     if mode in {"default", "lite"}:
         prompt_mode = "default" if mode == "default" else "lite"
@@ -984,14 +1194,15 @@ def plan_target_outputs(
     targets: list[str] | None = None,
 ) -> dict[Path, str]:
     selected_targets = targets or [target]
+    target_mode = effective_mode_for_target(target, mode)
     if target == "codex":
         return plan_codex_outputs(
             variables,
-            mode,
+            target_mode,
             resolve_codex_root_doc(selected_targets, mode, codex_root_doc),
         )
     if target == "copilot":
-        return plan_copilot_outputs(variables, mode)
+        return plan_copilot_outputs(variables, target_mode)
     raise ValueError(f"Unknown target: {target}")
 
 
@@ -1023,11 +1234,6 @@ def main() -> None:
         ),
     )
     parser.add_argument(
-        "--platform",
-        choices=["windows", "macos", "linux", "win32", "darwin"],
-        default=None,
-    )
-    parser.add_argument(
         "--output-dir",
         default=".",
         help="Root directory to write output into",
@@ -1037,8 +1243,9 @@ def main() -> None:
         choices=["agent", "agent-only", "default", "always", "always-on", "lite"],
         default="agent",
         help=(
-            "Shared builder mode. For Copilot, default=Always-on, "
-            "lite=slim instructions plus agents, and agent=Agent-only."
+            "Shared builder mode. default=Always-on, lite=slim Copilot "
+            "instructions plus agents with unsupported harnesses falling "
+            "back to Always-on, and agent=Agent-only."
         ),
     )
     parser.add_argument(
@@ -1065,7 +1272,6 @@ def main() -> None:
         args = parser.parse_args()
 
     args.mode = normalize_mode(args.mode)
-    args.platform = normalize_platform_override(args.platform)
 
     targets: list[str] = args.targets if args.targets else list(ALL_TARGETS)
     validate_mode_for_targets(targets, args.mode)
@@ -1092,11 +1298,11 @@ def main() -> None:
     all_written = write_outputs(
         out,
         plan_outputs_for_targets(
-            targets, args.mode, args.platform, args.codex_root_doc
+            targets, args.mode, args.codex_root_doc
         ),
     )
 
-    variables = get_variables(targets[0], args.platform)
+    variables = get_variables(targets[0])
     if (
         variables["PLATFORM"] == "win32"
         and args.output_dir.startswith("/")

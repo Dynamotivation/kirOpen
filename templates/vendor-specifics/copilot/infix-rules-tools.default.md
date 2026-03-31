@@ -2,9 +2,12 @@
 - Use #tool:edit for file modifications. For small targeted changes, prefer precise edits over full file rewrites.
 - Use #tool:search to find files or text patterns in the codebase.
 - Use #tool:execute to run shell commands. NEVER use it for long-running processes like dev servers or watchers. Tell the user to run those manually.
-- When you need to invoke a specialist agent for a subtask, use #tool:agent.
-- Exception: treat requests for `spec mode`, `spec session`, `spec design`, `feature spec`, `bugfix spec`, or `generate a spec` as explicit consent to invoke the `spec-mode` agent when available.
-- For `spec-mode` delegation, use single-owner execution: once `spec-mode` is invoked for a spec task, do not also draft or edit the same spec artifacts locally in the parent agent.
-- After invoking `spec-mode` for a spec request, wait for that agent's result before doing same-scope local spec work, to avoid duplicate work and conflicts.
-- Do not use Copilot's plan mode or the `#todo` tool to manage spec phases. The spec workflow has its own phase progression.
+- In this Always-on profile, do not assume a generated Copilot custom agent is available. Run the spec workflow inline using the reusable skills and explicit phase gates.
+- Do not use Copilot's plan mode to manage spec phases. The spec workflow has its own phase progression and approval gates.
+- If the current Copilot surface exposes a todo-capable tool such as `#todo`, use it only to mirror the active spec phase, not to replace the workflow gates.
+- In feature requirements-first mode, track phases in this order: `Draft requirements` -> `Ask user for feedback` -> `Draft design` -> `Draft tasks`.
+- In technical design-first mode, invert requirements and design: `Draft design` -> `Ask user for feedback` -> `Draft requirements` -> `Draft tasks`.
+- If a todo-capable tool is available, keep exactly one phase todo active at a time, and do not advance to the next phase until the user has given feedback or explicit approval.
+- For task execution from `.kiro/specs/.../tasks.md`, if a todo-capable tool is available, create one todo per task, keep the active task marked as in progress, and mark completed work in both the todo list and `tasks.md`.
+- Todo state helps track progress, but tool calls, plan UI changes, todo completion, and internal task lists do not count as user approval by themselves.
 - Use #tool:web/search or #tool:web/fetch when you need current information or URL content.

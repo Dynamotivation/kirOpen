@@ -42,8 +42,6 @@ The following Harnesses and IDEs are supported.
 
 ### GitHub Copilot
 
-[Install into new project](#installing-into-empty-repositories)
-
 <table width="100%">
   <tr>
     <td align="center" width="33.33%"><img src="docs/screenshots/copilot-1.avif" width="100%" /></td>
@@ -57,12 +55,12 @@ The following Harnesses and IDEs are supported.
   </tr>
 </table>
 
-<table width="100%">
+<table>
   <tr>
-    <td align="center" width="100%"><img src="docs/screenshots/copilot-4.avif" width="100%" /></td>
+    <td align="center" width="9999999999999"><img src="docs/screenshots/copilot-4.avif" width="100%" /></td>
   </tr>
   <tr>
-    <td align="center" width="100%"><em>Spec Mode in CLI</em></td>
+    <td align="center"><em>Spec Mode in CLI</em></td>
   </tr>
 </table>
 
@@ -72,8 +70,8 @@ The following Harnesses and IDEs are supported.
 |---|---|---|
 | Kiro Migration Skill | ✅ | Generated as `port-kiro-configuration-to-kiropen-on-copilot` for porting Kiro configuration into Copilot-native features. |
 | Vibe Mode | ✅ | Fully supported vibe mode as long as KirOpen provided `copilot-instructions.md` is installed. Disable plan mode during vibe sessions. |
-| Spec Mode | ✅ | Supported through `copilot-instructions.md` in Always-on and Lite, with delegation into `spec-mode.agent.md` to keep the main context smaller. Disable plan mode during spec sessions. |
-| Spec Agent | ✅ | `kiropen.agent.md` and `spec-mode.agent.md` are generated and can be used as primary Copilot agents. |
+| Spec Mode | ✅ | Always-on keeps the spec workflow inline through `copilot-instructions.md` plus reusable skills. Lite routes structured spec work into `spec-mode.agent.md`. Disable plan mode during spec sessions. |
+| Spec Agent | ✅ | `kiropen.agent.md` and `spec-mode.agent.md` are generated in Lite and Agent-only, where they can be used as primary Copilot agents. |
 | UI Dialogs | ✅ | KirOpen will use Copilot UI and CLI dialogs like Kiro, with chat fallback if tool is unavailable. |
 | Kiro Hooks | ⚠️ | Copilot hooks are supported, but behavior depends on the active Copilot surface. Per GitHub docs they are available for Copilot coding agent and Copilot CLI, and Windows hook definitions must use the `powershell` field instead of `bash`. |
 | Steering Support | ✅ | Steering wrappers in `.github/instructions/*.instructions.md` pointing to `.kiro/steering/*` are supported and can be generated using the migration skill. |
@@ -82,7 +80,7 @@ The following Harnesses and IDEs are supported.
 #### Copilot Profiles
 
 - Always-on
-  Emits the full `.github/copilot-instructions.md` plus agents, path-scoped instructions, skills, and the Copilot runtime guide.
+  Emits the full `.github/copilot-instructions.md`, path-scoped instructions, skills, and the Copilot runtime guide. This is the primary Copilot profile currently implemented in full.
 - Lite
   Emits a slimmer `.github/copilot-instructions.md` plus the KirOpen agents. It keeps the global file small and mainly routes structured spec work into `spec-mode`.
 - Agent-only
@@ -100,6 +98,10 @@ The following Harnesses and IDEs are supported.
 - GitHub.com coding agent
 - Visual Studio
 - Other
+
+#### Installation
+
+[**Install into new project**](#installing-into-empty-repositories)
 
 <details>
 <summary>Install into existing project</summary>
@@ -227,7 +229,7 @@ python assemble_instructions.py
 Supported CLI usage:
 
 ```bash
-python assemble_instructions.py [--platform windows|macos|linux] [--output-dir <dir>] [--mode agent|default|lite|always-on|agent-only] [codex] [copilot]
+python assemble_instructions.py [--output-dir <dir>] [--mode agent|default|lite|always-on|agent-only] [codex] [copilot]
 ```
 
 If your system exposes Python as `python3`, use `python3` in the examples below.
@@ -332,6 +334,8 @@ Run in interactive mode:
 ```bash
 python assemble_instructions.py
 ```
+
+The interactive flow starts with a keyboard-driven selector. Use arrow keys to move, space to toggle harnesses, and Enter to confirm each step.
 
 The builder refuses to overwrite existing generated output. If a target file already exists, delete it manually and rerun.
 </details>
