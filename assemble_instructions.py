@@ -37,6 +37,7 @@ PROMPTS_DIR = TEMPLATES_DIR / "prompts"
 STEERING_DIR = TEMPLATES_DIR / "steering"
 
 ALL_TARGETS = ["codex", "copilot"]
+INTERACTIVE_UNSUPPORTED_TARGETS = {"codex"}
 ANSI_GREEN = "\033[32m"
 ANSI_ORANGE = "\033[38;5;208m"
 ANSI_YELLOW = "\033[33m"
@@ -514,6 +515,42 @@ def supported_modes_for_targets(targets: list[str]) -> list[str]:
     return [mode for mode in MODE_DISPLAY_ORDER if mode in supported]
 
 
+def interactive_targets(allow_unsupported: bool = False) -> list[str]:
+    if allow_unsupported:
+        return list(ALL_TARGETS)
+    return [
+        target
+        for target in ALL_TARGETS
+        if target not in INTERACTIVE_UNSUPPORTED_TARGETS
+    ]
+
+
+def _unsupported_interactive_targets(
+    targets: list[str], allow_unsupported: bool
+) -> list[str]:
+    if allow_unsupported:
+        return []
+    return [
+        target
+        for target in targets
+        if target in INTERACTIVE_UNSUPPORTED_TARGETS
+    ]
+
+
+def _unsupported_interactive_targets_message(targets: list[str]) -> str:
+    target_list = ", ".join(targets)
+    verb = "is" if len(targets) == 1 else "are"
+    pronoun = "it" if len(targets) == 1 else "them"
+    return (
+        f"{target_list} {verb} currently unsupported in interactive mode. "
+        f"Rerun with --allow-unsupported to include {pronoun}."
+    )
+
+
+def _should_start_interactive(raw_args: list[str]) -> bool:
+    return not [arg for arg in raw_args if arg != "--allow-unsupported"]
+
+
 def fallback_targets_for_mode(targets: list[str], mode: str) -> list[str]:
     return [
         target
@@ -754,22 +791,31 @@ def _prompt_with_default(prompt: str, default: str) -> str:
     return value or default
 
 
-def _prompt_targets() -> list[str]:
+def _prompt_targets(allow_unsupported: bool = False) -> list[str]:
+    available_targets = interactive_targets(allow_unsupported)
+    choices = ", ".join(available_targets)
     while True:
         raw = _prompt_with_default(
-            "Which harness are you targeting? (all, codex, copilot, or comma-separated list)",
+            (
+                "Which harness are you targeting? "
+                f"(all, {choices}, or comma-separated list)"
+            ),
             "all",
         ).lower()
         if raw == "all":
-            return list(ALL_TARGETS)
+            return available_targets
 
         targets = [part.strip() for part in raw.split(",") if part.strip()]
+        unsupported = _unsupported_interactive_targets(targets, allow_unsupported)
         invalid = [target for target in targets if target not in ALL_TARGETS]
+        if unsupported:
+            print(_unsupported_interactive_targets_message(unsupported))
+            continue
         if not invalid and targets:
             return targets
         print(
             "Invalid targets for interactive mode. "
-            f"Choose from: {', '.join(ALL_TARGETS)} or 'all'."
+            f"Choose from: {choices} or 'all'."
         )
 
 
@@ -888,7 +934,10 @@ def _render_interactive_screen(lines: list[str]) -> None:
 
 
 def _render_harness_selector(
-    active_index: int, selected_targets: set[str], message: str | None = None
+    active_index: int,
+    selected_targets: set[str],
+    selectable_targets: set[str],
+    message: str | None = None,
 ) -> None:
     lines = [
         "Choose the harnesses to configure.",
@@ -897,21 +946,37 @@ def _render_harness_selector(
     ]
     for index, target in enumerate(ALL_TARGETS):
         cursor = ">" if index == active_index else " "
-        checkbox = "[x]" if target in selected_targets else "[ ]"
-        lines.append(f"{cursor} {checkbox} {target}")
+        if target in selectable_targets:
+            checkbox = "[x]" if target in selected_targets else "[ ]"
+            suffix = ""
+        else:
+            checkbox = "[-]"
+            suffix = " (unsupported; rerun with --allow-unsupported)"
+        lines.append(f"{cursor} {checkbox} {target}{suffix}")
     if message:
         lines.extend(["", message])
     _render_interactive_screen(lines)
 
 
 def _select_targets_interactively(
-    read_key: Callable[[], str] = _read_key
+    read_key: Callable[[], str] = _read_key,
+    allow_unsupported: bool = False,
 ) -> list[str]:
-    active_index = 0
+    selectable_targets = set(interactive_targets(allow_unsupported))
+    active_index = next(
+        (
+            index
+            for index, target in enumerate(ALL_TARGETS)
+            if target in selectable_targets
+        ),
+        0,
+    )
     selected_targets: set[str] = set()
     message: str | None = None
     while True:
-        _render_harness_selector(active_index, selected_targets, message)
+        _render_harness_selector(
+            active_index, selected_targets, selectable_targets, message
+        )
         message = None
         key = read_key()
         if key == "up":
@@ -922,6 +987,9 @@ def _select_targets_interactively(
             continue
         if key == "space":
             target = ALL_TARGETS[active_index]
+            if target not in selectable_targets:
+                message = _unsupported_interactive_targets_message([target])
+                continue
             if target in selected_targets:
                 selected_targets.remove(target)
             else:
@@ -981,14 +1049,16 @@ def _select_mode_interactively(
             raise KeyboardInterrupt
 
 
-def interactive_args() -> argparse.Namespace:
+def interactive_args(allow_unsupported: bool = False) -> argparse.Namespace:
     if _keyboard_ui_available():
-        targets = _select_targets_interactively()
+        targets = _select_targets_interactively(
+            allow_unsupported=allow_unsupported
+        )
         mode = _select_mode_interactively(targets)
         print()
     else:
         print("Starting interactive mode, press CTRL+C to cancel.")
-        targets = _prompt_targets()
+        targets = _prompt_targets(allow_unsupported=allow_unsupported)
         mode = _prompt_mode(targets)
     output_dir = _prompt_with_default("Repo directory to install to", ".")
     return argparse.Namespace(
@@ -997,6 +1067,7 @@ def interactive_args() -> argparse.Namespace:
         output_dir=output_dir,
         codex_trust="prompt",
         codex_root_doc="auto",
+        allow_unsupported=allow_unsupported,
     )
 
 
@@ -1266,8 +1337,19 @@ def main() -> None:
             "Codex is the only target, use AGENTS.md instead."
         ),
     )
-    if len(sys.argv) == 1:
-        args = interactive_args()
+    parser.add_argument(
+        "--allow-unsupported",
+        action="store_true",
+        help=(
+            "Expose unsupported harnesses in interactive mode. "
+            "Explicit target arguments already remain available."
+        ),
+    )
+    raw_args = sys.argv[1:]
+    if _should_start_interactive(raw_args):
+        args = interactive_args(
+            allow_unsupported="--allow-unsupported" in raw_args
+        )
     else:
         args = parser.parse_args()
 

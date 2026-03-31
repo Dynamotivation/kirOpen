@@ -8,6 +8,8 @@ from unittest.mock import patch
 from assemble_instructions import (
     BUILDER_VERSION,
     _select_mode_interactively,
+    _select_targets_interactively,
+    _should_start_interactive,
     assemble_prompt,
     build_codex_default_choice_prompt,
     codex_project_trust_level,
@@ -198,10 +200,23 @@ class CodexRootDocTests(unittest.TestCase):
             patch("builtins.input", side_effect=["wat", "codex"]),
             patch("sys.stdout", new_callable=StringIO) as stdout,
         ):
-            selection = _prompt_targets()
+            selection = _prompt_targets(allow_unsupported=True)
 
         self.assertEqual(selection, ["codex"])
         self.assertIn("Invalid targets for interactive mode.", stdout.getvalue())
+
+    def test_prompt_targets_rejects_unsupported_target_without_flag(self) -> None:
+        with (
+            patch("builtins.input", side_effect=["codex", "copilot"]),
+            patch("sys.stdout", new_callable=StringIO) as stdout,
+        ):
+            selection = _prompt_targets()
+
+        self.assertEqual(selection, ["copilot"])
+        self.assertIn(
+            "codex is currently unsupported in interactive mode.",
+            stdout.getvalue(),
+        )
 
     def test_codex_final_prompt_retries_after_invalid_choice(self) -> None:
         with (
@@ -320,6 +335,43 @@ class CodexRootDocTests(unittest.TestCase):
         self.assertEqual(args.mode, "lite")
         self.assertEqual(args.output_dir, ".")
 
+    def test_interactive_target_selector_blocks_codex_without_flag(self) -> None:
+        keys = iter(["up", "space", "down", "space", "enter"])
+        rendered_messages: list[str | None] = []
+
+        def record_render(
+            active_index: int,
+            selected_targets: set[str],
+            selectable_targets: set[str],
+            message: str | None = None,
+        ) -> None:
+            rendered_messages.append(message)
+
+        with patch(
+            "assemble_instructions._render_harness_selector",
+            side_effect=record_render,
+        ):
+            selection = _select_targets_interactively(
+                read_key=lambda: next(keys),
+            )
+
+        self.assertEqual(selection, ["copilot"])
+        self.assertIn(
+            "codex is currently unsupported in interactive mode. Rerun with --allow-unsupported to include it.",
+            rendered_messages,
+        )
+
+    def test_interactive_target_selector_allows_codex_with_flag(self) -> None:
+        keys = iter(["space", "enter"])
+
+        with patch("assemble_instructions._render_harness_selector"):
+            selection = _select_targets_interactively(
+                read_key=lambda: next(keys),
+                allow_unsupported=True,
+            )
+
+        self.assertEqual(selection, ["codex"])
+
     def test_interactive_mode_selector_uses_up_and_down(self) -> None:
         keys = iter(["down", "enter"])
 
@@ -347,6 +399,11 @@ class CodexRootDocTests(unittest.TestCase):
 
         self.assertEqual(rendered_modes[0], "default")
         self.assertEqual(selection, "default")
+
+    def test_allow_unsupported_only_still_uses_interactive_entry(self) -> None:
+        self.assertTrue(_should_start_interactive([]))
+        self.assertTrue(_should_start_interactive(["--allow-unsupported"]))
+        self.assertFalse(_should_start_interactive(["--output-dir", "review_build"]))
 
 
 class PromptIdentityTests(unittest.TestCase):

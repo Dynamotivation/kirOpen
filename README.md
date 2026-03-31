@@ -21,7 +21,7 @@ KirOpen translates Kiro concepts such as specs, steering, hooks, MCP, powers, vi
 - [What KirOpen Enables](#what-kiropen-enables)
 - [Supported Harnesses and IDEs](#supported-harnesses-and-ides)
   - [GitHub Copilot](#github-copilot)
-  - [OpenAI Codex](#openai-codex)
+  <!-- - [OpenAI Codex](#openai-codex) -->
 
 ## What KirOpen Enables
 
@@ -137,11 +137,14 @@ If you built in Always-on mode, also copy:
 <br />
 <br />
 
+<!--
+<div>
+
 ### OpenAI Codex
 
 [Install into new project](#installing-into-empty-repositories)
 
-<!-- <table>
+<table>
   <tr>
     <td align="center"><em>KirOpen in action</em><br /><img src="docs/screenshots/codex-1.png" /></td>
     <td align="center"><em>Spec Mode and Bugfix</em><br /><img src="docs/screenshots/codex-2.png" /></td>
@@ -150,7 +153,7 @@ If you built in Always-on mode, also copy:
   <tr>
     <td align="center"><em>Spec Mode in CLI</em><br /><img src="docs/screenshots/codex-4.png" /></td>
   </tr>
-</table> -->
+</table>
 
 #### Features
 
@@ -206,6 +209,9 @@ If you built with `--codex-root-doc agents`, copy instead:
 - `review_codex/AGENTS.md` -> `<repo>/AGENTS.md`
 
 </details>
+
+</div>
+-->
 
 ## Planned Harnesses
 
@@ -336,6 +342,12 @@ python assemble_instructions.py
 ```
 
 The interactive flow starts with a keyboard-driven selector. Use arrow keys to move, space to toggle harnesses, and Enter to confirm each step.
+
+To expose unsupported harnesses in the interactive selector, start it with:
+
+```bash
+python assemble_instructions.py --allow-unsupported
+```
 
 The builder refuses to overwrite existing generated output. If a target file already exists, delete it manually and rerun.
 </details>
